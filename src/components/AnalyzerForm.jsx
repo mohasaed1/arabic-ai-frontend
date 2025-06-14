@@ -7,37 +7,51 @@ export default function AnalyzerForm() {
   const [loading, setLoading] = useState(false);
 
   const handleAnalyze = async () => {
+    if (!text.trim()) return;
     setLoading(true);
+    setResult(null);
     try {
-      const res = await axios.post("https://arabic-ai-app-production.up.railway.app/analyze", { text });
-      setResult(res.data);
+      const response = await axios.post(
+        "https://arabic-ai-app-production.up.railway.app/analyze",
+        { text }
+      );
+      setResult(response.data);
     } catch (err) {
-      alert("حدث خطأ أثناء الاتصال بالخادم.");
+      alert("حدث خطأ أثناء تحليل النص.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <div className="space-y-4">
+    <div>
       <textarea
-        className="w-full h-40 p-4 text-sm rounded-lg bg-gray-800 text-white placeholder-gray-400 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-        placeholder="أدخل نصاً باللغة العربية..."
         value={text}
         onChange={(e) => setText(e.target.value)}
+        placeholder="✍️ أدخل نصاً باللغة العربية هنا..."
+        style={{
+          width: "100%",
+          height: "120px",
+          padding: "1rem",
+          borderRadius: "8px",
+          border: "1px solid #333",
+          background: "var(--bg-dark)",
+          color: "var(--text-light)",
+          resize: "vertical",
+          fontSize: "1rem",
+          marginBottom: "1rem"
+        }}
       />
-      <button
-        onClick={handleAnalyze}
-        disabled={loading}
-        className="w-full py-3 px-6 bg-cyan-600 text-white font-bold rounded hover:bg-cyan-700 disabled:opacity-50"
-      >
-        {loading ? "جاري التحليل..." : "تحليل"}
+
+      <button onClick={handleAnalyze} className="btn" disabled={loading}>
+        {loading ? "جارٍ التحليل..." : "تحليل النص"}
       </button>
 
       {result && (
-        <div className="bg-gray-900 rounded-xl p-4 mt-4 space-y-2 text-sm text-gray-100">
-          <div><strong>📝 الملخص:</strong> {result.summary}</div>
-          <div><strong>😊 المشاعر:</strong> {result.sentiment}</div>
-          <div><strong>🔑 الكلمات المفتاحية:</strong> {result.keywords.join(", ")}</div>
+        <div style={{ marginTop: "2rem", lineHeight: "1.8", fontSize: "0.95rem" }}>
+          <p><strong>📄 الملخص:</strong> {result.summary}</p>
+          <p><strong>😊 المشاعر:</strong> {result.sentiment}</p>
+          <p><strong>🔑 الكلمات المفتاحية:</strong> {result.keywords.join(", ")}</p>
         </div>
       )}
     </div>
