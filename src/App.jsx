@@ -58,3 +58,16 @@ function App() {
 }
 
 export default App;
+
+const [loading, setLoading] = useState(false);
+
+// In handleAnalyze()
+setLoading(true);
+try {
+  const response = await axios.post(...);
+  setResult(response.data);
+} catch (err) {
+  alert("حدث خطأ أثناء الاتصال بالخادم.");
+}
+setLoading(false);
+
