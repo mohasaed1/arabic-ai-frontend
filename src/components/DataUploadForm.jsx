@@ -1,10 +1,25 @@
 import React, { useState } from "react";
 import Papa from "papaparse";
 import { generateInsights } from "../utils/generateInsights";
+import { Bar, Pie } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  BarElement,
+  ArcElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(BarElement, ArcElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 export default function DataUploadForm() {
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
+  const [selectedColumn, setSelectedColumn] = useState("");
+  const [chartData, setChartData] = useState(null);
+  const [isNumeric, setIsNumeric] = useState(false);
   const [insights, setInsights] = useState("");
 
   const handleFileChange = (e) => {
@@ -19,23 +34,38 @@ export default function DataUploadForm() {
         const rows = results.data;
         setColumns(fields);
         setData(rows);
-
-        // Generate intelligent summary
-        const summary = generateInsights(rows, fields);
-        setInsights(summary);
+        setSelectedColumn("");
+        setChartData(null);
+        setInsights(generateInsights(rows, fields));
       },
     });
   };
 
+  const handleColumnChange = (col) => {
+    setSelectedColumn(col);
+    const values = data.map((row) => row[col]).filter(Boolean);
+    const numeric = values.every((v) => !isNaN(v));
+    setIsNumeric(numeric);
+
+    const freqMap = {};
+    values.forEach((v) => {
+      const key = numeric ? Number(v).toFixed(0) : v;
+      freqMap[key] = (freqMap[key] || 0) + 1;
+    });
+
+    setChartData(freqMap);
+  };
+
   return (
-    <div className="form-section">
-      <h2>📊 Upload CSV Data File</h2>
+    <div className="form-section" dir="rtl">
+      <h2>🧠 منصة تحليل البيانات الذكية</h2>
+      <p>📁 ارفع ملف بيانات (CSV أو Excel)</p>
       <input type="file" accept=".csv" onChange={handleFileChange} />
 
       {columns.length > 0 && (
         <>
           <div className="mt-4">
-            <h3>📋 Preview ({data.length} rows)</h3>
+            <h3>📋 معاينة ({data.length} صف)</h3>
             <table className="data-table">
               <thead>
                 <tr>
@@ -56,9 +86,56 @@ export default function DataUploadForm() {
             </table>
           </div>
 
+          <div className="mt-6">
+            <label htmlFor="column-select">📊 اختر عمودًا لعرض الرسم البياني:</label>
+            <select
+              id="column-select"
+              value={selectedColumn}
+              onChange={(e) => handleColumnChange(e.target.value)}
+            >
+              <option value="">-- اختر عمود --</option>
+              {columns.map((col) => (
+                <option key={col} value={col}>
+                  {col}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {chartData && (
+            <div className="mt-6">
+              <h3>📈 {isNumeric ? "رسم بياني عمودي" : "رسم بياني دائري"} لـ {selectedColumn}</h3>
+              {isNumeric ? (
+                <Bar
+                  data={{
+                    labels: Object.keys(chartData),
+                    datasets: [
+                      {
+                        label: selectedColumn,
+                        data: Object.values(chartData),
+                      },
+                    ],
+                  }}
+                />
+              ) : (
+                <Pie
+                  data={{
+                    labels: Object.keys(chartData),
+                    datasets: [
+                      {
+                        label: selectedColumn,
+                        data: Object.values(chartData),
+                      },
+                    ],
+                  }}
+                />
+              )}
+            </div>
+          )}
+
           {insights && (
             <div className="mt-6 insights-box">
-              <h3>🧠 Intelligent Summary</h3>
+              <h3>🧠 الملخص الذكي</h3>
               <p>{insights}</p>
             </div>
           )}
