@@ -58,8 +58,8 @@ export default function DataUploadForm() {
 
   return (
     <div className="form-section" dir="rtl">
-      <h2>🧠 منصة تحليل البيانات الذكية</h2>
-      <p>📁 ارفع ملف بيانات (CSV أو Excel)</p>
+      <h2>🤖 منصة تحليل البيانات الذكية</h2>
+      <p>📁 ارفع ملف بيانات (CSV أو Excel) لاستكشاف وتحليل المحتوى باستخدام الذكاء الاصطناعي</p>
       <input type="file" accept=".csv" onChange={handleFileChange} />
 
       {columns.length > 0 && (
@@ -104,7 +104,7 @@ export default function DataUploadForm() {
 
           {chartData && (
             <div className="chart-wrapper">
-              <h3>📈 رسم بياني {isNumeric ? "عمودي" : "دائري"} لـ {selectedColumn}</h3>
+              <h3>📈 رسم {isNumeric ? "بياني عمودي" : "بياني دائري"} لـ {selectedColumn}</h3>
               {isNumeric ? (
                 <Bar
                   data={{
@@ -144,7 +144,7 @@ export default function DataUploadForm() {
           )}
 
           {insights && (
-            <div className="mt-6 insights-box">
+            <div className="insights-box">
               <h3>🧠 الملخص الذكي</h3>
               <p>{insights}</p>
             </div>

@@ -1,4 +1,4 @@
-import DataUploadForm from "./components/DataUploadForm";
+import SmartDataAnalyzer from "./components/SmartDataAnalyzer";
 import "./theme.css";
 
 export default function App() {
