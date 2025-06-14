@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import Papa from "papaparse";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import generateInsights from "../utils/generateInsights";
 
 export default function DataUploadForm() {
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
-  const [selectedColumn, setSelectedColumn] = useState("");
+  const [insights, setInsights] = useState("");
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -14,36 +14,29 @@ export default function DataUploadForm() {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      complete: (results) => {
-        setColumns(results.meta.fields);
-        setData(results.data);
+      complete: function (results) {
+        const fields = results.meta.fields;
+        const rows = results.data;
+        setColumns(fields);
+        setData(rows);
+
+        // Generate intelligent summary
+        const summary = generateInsights(rows, fields);
+        setInsights(summary);
       },
     });
   };
 
-  const generateChartData = () => {
-    if (!selectedColumn || data.length === 0) return [];
-
-    const counts = {};
-    data.forEach((row) => {
-      const value = row[selectedColumn];
-      if (value) {
-        counts[value] = (counts[value] || 0) + 1;
-      }
-    });
-
-    return Object.entries(counts).map(([key, value]) => ({ name: key, value }));
-  };
-
   return (
     <div className="form-section">
+      <h2>📊 Upload CSV Data File</h2>
       <input type="file" accept=".csv" onChange={handleFileChange} />
 
       {columns.length > 0 && (
         <>
-          <div style={{ marginTop: "1.5rem" }}>
-            <strong>🧩 Preview (first 5 rows):</strong>
-            <table className="data-table" style={{ marginTop: "0.5rem", width: "100%" }}>
+          <div className="mt-4">
+            <h3>📋 Preview ({data.length} rows)</h3>
+            <table className="data-table">
               <thead>
                 <tr>
                   {columns.map((col) => (
@@ -63,35 +56,10 @@ export default function DataUploadForm() {
             </table>
           </div>
 
-          <div style={{ marginTop: "2rem" }}>
-            <label>
-              <strong>📌 Select a column for analysis:</strong>
-              <select
-                value={selectedColumn}
-                onChange={(e) => setSelectedColumn(e.target.value)}
-                style={{ marginInlineStart: "1rem", padding: "0.3rem" }}
-              >
-                <option value="">-- اختر عموداً --</option>
-                {columns.map((col) => (
-                  <option key={col} value={col}>
-                    {col}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {selectedColumn && (
-            <div style={{ marginTop: "2rem" }}>
-              <h3>📊 Chart: {selectedColumn}</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={generateChartData()}>
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#00C49F" />
-                </BarChart>
-              </ResponsiveContainer>
+          {insights && (
+            <div className="mt-6 insights-box">
+              <h3>🧠 Intelligent Summary</h3>
+              <p>{insights}</p>
             </div>
           )}
         </>
