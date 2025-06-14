@@ -1,49 +1,63 @@
 :root {
-  --primary: #00f0ff;
-  --bg-dark: #10101a;
-  --bg-accent: #1c1c2e;
-  --text-light: #f8f8f8;
-  --text-muted: #999;
-  --font-arabic: 'Cairo', 'Tajawal', sans-serif;
+  --bg-main: #f9fafb;
+  --bg-content: #ffffff;
+  --text-main: #111827;
+  --text-light: #374151;
+  --primary: #3b82f6;
+  --accent: #10b981;
+  --border: #e5e7eb;
 }
 
 body {
-  font-family: var(--font-arabic);
-  background: var(--bg-dark);
-  color: var(--text-light);
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: 'Tajawal', 'Segoe UI', sans-serif;
+  direction: rtl;
   margin: 0;
   padding: 0;
-  direction: rtl;
-  text-align: right;
 }
 
-a {
-  color: var(--primary);
-  text-decoration: none;
-}
-
-h1, h2, h3 {
-  font-weight: 600;
-  margin-bottom: 0.5rem;
-}
-
-.card {
-  background: var(--bg-accent);
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 0 10px rgba(0,255,255,0.05);
+textarea, input {
+  background: var(--bg-content);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  width: 100%;
+  font-size: 1rem;
 }
 
 .btn {
-  background: var(--primary);
-  color: black;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
+  background-color: var(--primary);
+  color: white;
   border: none;
-  transition: all 0.3s ease;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 1rem;
 }
+
 .btn:hover {
-  background: #0ff;
+  background-color: #2563eb;
+}
+
+h1, h2, h3 {
+  color: var(--text-main);
+}
+
+aside {
+  background-color: var(--bg-content);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.result-box {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #f3f4f6;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  line-height: 1.8;
 }
