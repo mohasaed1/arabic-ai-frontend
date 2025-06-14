@@ -103,8 +103,8 @@ export default function DataUploadForm() {
           </div>
 
           {chartData && (
-            <div className="mt-6">
-              <h3>📈 {isNumeric ? "رسم بياني عمودي" : "رسم بياني دائري"} لـ {selectedColumn}</h3>
+            <div className="chart-wrapper">
+              <h3>📈 رسم بياني {isNumeric ? "عمودي" : "دائري"} لـ {selectedColumn}</h3>
               {isNumeric ? (
                 <Bar
                   data={{
@@ -113,9 +113,11 @@ export default function DataUploadForm() {
                       {
                         label: selectedColumn,
                         data: Object.values(chartData),
+                        backgroundColor: "#3b82f6",
                       },
                     ],
                   }}
+                  options={{ responsive: true, maintainAspectRatio: false }}
                 />
               ) : (
                 <Pie
@@ -125,9 +127,17 @@ export default function DataUploadForm() {
                       {
                         label: selectedColumn,
                         data: Object.values(chartData),
+                        backgroundColor: [
+                          "#10b981",
+                          "#3b82f6",
+                          "#f59e0b",
+                          "#ef4444",
+                          "#6366f1",
+                        ],
                       },
                     ],
                   }}
+                  options={{ responsive: true, maintainAspectRatio: false }}
                 />
               )}
             </div>
