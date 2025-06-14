@@ -43,9 +43,14 @@ export default function AnalyzerForm() {
         }}
       />
 
-      <button onClick={handleAnalyze} className="btn" disabled={loading}>
-        {loading ? "جارٍ التحليل..." : "تحليل النص"}
-      </button>
+     <button
+  onClick={handleAnalyze}
+  disabled={loading}
+  className="analyze-btn"
+>
+  {loading ? "⏳ جاري التحليل..." : "تحليل النص"}
+</button>
+
 
       {result && (
   <div className="results-container mt-6 space-y-4">
