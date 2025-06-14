@@ -1,76 +1,99 @@
 import React, { useState } from "react";
 import Papa from "papaparse";
-import * as XLSX from "xlsx";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend
+} from "chart.js";
+
+ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 export default function DataUploadForm() {
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
-  const [fileName, setFileName] = useState("");
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setFileName(file.name);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: function (results) {
+        setColumns(results.meta.fields);
+        setData(results.data);
+      },
+    });
+  };
 
-    const reader = new FileReader();
+  const summarize = () => {
+    const summary = columns.map((col) => {
+      const nonEmpty = data.filter((row) => row[col] && row[col].trim() !== "");
+      return `${col}: ${nonEmpty.length} filled rows`;
+    });
+    return summary;
+  };
 
-    if (file.name.endsWith(".csv")) {
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: function (results) {
-          setColumns(results.meta.fields);
-          setData(results.data);
-        },
-      });
-    } else if (
-      file.name.endsWith(".xlsx") ||
-      file.name.endsWith(".xls")
-    ) {
-      reader.onload = (evt) => {
-        const bstr = evt.target.result;
-        const workbook = XLSX.read(bstr, { type: "binary" });
-        const firstSheet = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheet];
-        const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-        setColumns(Object.keys(json[0]));
-        setData(json);
-      };
-      reader.readAsBinaryString(file);
-    } else {
-      alert("Please upload a valid CSV or Excel file.");
-    }
+  const chartData = {
+    labels: columns,
+    datasets: [
+      {
+        label: "Filled Rows per Column",
+        data: columns.map(
+          (col) => data.filter((row) => row[col] && row[col].trim() !== "").length
+        ),
+        backgroundColor: "#4faaff",
+      },
+    ],
   };
 
   return (
     <div className="form-section">
-      <h2 style={{ marginBottom: "1rem" }}>📊 Upload CSV or Excel File</h2>
-      <input type="file" accept=".csv,.xlsx,.xls" onChange={handleFileChange} />
-      {fileName && <p style={{ marginTop: "0.5rem" }}>📁 File: {fileName}</p>}
+      <h2>📊 Upload CSV Data File</h2>
+      <input type="file" accept=".csv" onChange={handleFileChange} />
 
       {columns.length > 0 && (
-        <div className="preview-table" style={{ marginTop: "1.5rem" }}>
-          <h3>📋 Preview First 5 Rows</h3>
-          <table className="data-table">
-            <thead>
-              <tr>
-                {columns.map((col) => (
-                  <th key={col}>{col}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.slice(0, 5).map((row, i) => (
-                <tr key={i}>
+        <>
+          <div className="mt-4">
+            <h3>🧾 Summary</h3>
+            <ul style={{ padding: "0 1rem" }}>
+              {summarize().map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="mt-4">
+            <h3>📈 Column Completeness</h3>
+            <Bar data={chartData} />
+          </div>
+
+          <div className="mt-6">
+            <h3>🔍 Preview (first 5 rows)</h3>
+            <table className="data-table">
+              <thead>
+                <tr>
                   {columns.map((col) => (
-                    <td key={col}>{row[col]}</td>
+                    <th key={col}>{col}</th>
                   ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {data.slice(0, 5).map((row, i) => (
+                  <tr key={i}>
+                    {columns.map((col) => (
+                      <td key={col}>{row[col]}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
