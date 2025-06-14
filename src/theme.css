@@ -172,3 +172,63 @@ label[for="column-select"] {
 .chart-wrapper canvas {
   max-width: 100%;
 }
+.form-section {
+  max-width: 900px;
+  margin: auto;
+  background: var(--bg-content);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 0 12px rgba(0, 153, 255, 0.08);
+  margin-top: 2rem;
+}
+
+input[type="file"] {
+  margin-top: 1rem;
+  cursor: pointer;
+}
+
+label[for="column-select"] {
+  font-weight: 600;
+  margin-top: 1rem;
+  display: block;
+  color: var(--text-main);
+}
+
+select {
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  width: 100%;
+  background-color: var(--bg-content);
+  margin-top: 0.5rem;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 380px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  margin-top: 1.5rem;
+  padding: 1rem;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.08);
+}
+
+.chart-wrapper canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+.insights-box {
+  background: #f0fdfa;
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  padding: 1.5rem;
+  margin-top: 2rem;
+  font-size: 1rem;
+  color: var(--text-light);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.05);
+  line-height: 1.8;
+}
