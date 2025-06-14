@@ -1,36 +1,39 @@
 import AnalyzerForm from "./components/AnalyzerForm";
+import "./theme.css";
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-[#0f172a] text-right text-white font-sans" dir="rtl">
-      <header className="bg-[#1e293b] shadow px-6 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-cyan-400">🧠 منصة تحليل النصوص العربية</h1>
-        <a href="https://gateofai.com/logout" className="text-sm text-cyan-300 hover:underline">تسجيل الخروج</a>
+    <div className="app-wrapper">
+      <header style={{
+        background: "var(--bg-accent)",
+        padding: "1rem 2rem",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        boxShadow: "0 0 8px rgba(0,255,255,0.05)"
+      }}>
+        <h1 style={{ fontSize: "1.5rem", fontWeight: "600" }}>🧠 منصة تحليل النصوص العربية</h1>
+        <a href="https://gateofai.com/logout" style={{ fontSize: "0.9rem", color: "var(--primary)" }}>تسجيل الخروج</a>
       </header>
 
-      <main className="max-w-6xl mx-auto py-8 px-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Analyzer Input */}
-        <section className="md:col-span-2">
-          <div className="bg-[#1e293b] rounded-2xl shadow-lg p-6">
-            <h2 className="text-lg font-semibold mb-4 text-cyan-300">🔍 أدخل نصاً لتحليله</h2>
-            <AnalyzerForm />
-          </div>
+      <main style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto", display: "grid", gap: "2rem", gridTemplateColumns: "2fr 1fr" }}>
+        <section className="card">
+          <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>🔍 أدخل نصاً لتحليله</h2>
+          <AnalyzerForm />
         </section>
 
-        {/* Sidebar Info */}
-        <aside className="bg-[#1e293b] rounded-2xl shadow-lg p-6 flex flex-col justify-between">
+        <aside className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
           <div>
-            <h3 className="text-md font-bold mb-2 text-cyan-300">🧾 عن الأداة</h3>
-            <p className="text-sm leading-relaxed text-gray-300">
-              هذه الأداة تستخدم نماذج الذكاء الاصطناعي لتحليل النصوص العربية:
-              <ul className="list-disc pr-5 mt-2 text-sm text-cyan-100 space-y-1">
-                <li>تلخيص المحتوى</li>
-                <li>تحليل المشاعر</li>
-                <li>استخراج الكلمات المفتاحية</li>
-              </ul>
-            </p>
+            <h3 style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>🧾 عن الأداة</h3>
+            <ul style={{ paddingRight: "1.2rem", color: "var(--text-muted)", lineHeight: "1.6" }}>
+              <li>تلخيص المحتوى</li>
+              <li>تحليل المشاعر</li>
+              <li>استخراج الكلمات المفتاحية</li>
+            </ul>
           </div>
-          <div className="mt-6 text-xs text-gray-500 text-center">GateOfAI.com © 2025</div>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "2rem" }}>
+            GateOfAI.com © 2025
+          </div>
         </aside>
       </main>
     </div>
