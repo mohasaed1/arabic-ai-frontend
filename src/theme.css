@@ -160,3 +160,15 @@ label[for="column-select"] {
     font-size: 0.9rem;
   }
 }
+.chart-wrapper {
+  position: relative;
+  height: 360px;
+  margin-top: 1.5rem;
+  background: var(--bg-content);
+  border: 1px solid var(--border);
+  padding: 1rem;
+  border-radius: 12px;
+}
+.chart-wrapper canvas {
+  max-width: 100%;
+}
