@@ -1,0 +1,49 @@
+:root {
+  --primary: #00f0ff;
+  --bg-dark: #10101a;
+  --bg-accent: #1c1c2e;
+  --text-light: #f8f8f8;
+  --text-muted: #999;
+  --font-arabic: 'Cairo', 'Tajawal', sans-serif;
+}
+
+body {
+  font-family: var(--font-arabic);
+  background: var(--bg-dark);
+  color: var(--text-light);
+  margin: 0;
+  padding: 0;
+  direction: rtl;
+  text-align: right;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+h1, h2, h3 {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.card {
+  background: var(--bg-accent);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 0 10px rgba(0,255,255,0.05);
+}
+
+.btn {
+  background: var(--primary);
+  color: black;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s ease;
+}
+.btn:hover {
+  background: #0ff;
+}
