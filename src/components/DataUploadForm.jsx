@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Papa from "papaparse";
-import generateInsights from "../utils/generateInsights";
+import { generateInsights } from "../utils/generateInsights";
 
 export default function DataUploadForm() {
   const [data, setData] = useState([]);
