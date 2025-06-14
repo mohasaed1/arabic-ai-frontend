@@ -48,12 +48,24 @@ export default function AnalyzerForm() {
       </button>
 
       {result && (
-        <div style={{ marginTop: "2rem", lineHeight: "1.8", fontSize: "0.95rem" }}>
-          <p><strong>📄 الملخص:</strong> {result.summary}</p>
-          <p><strong>😊 المشاعر:</strong> {result.sentiment}</p>
-          <p><strong>🔑 الكلمات المفتاحية:</strong> {result.keywords.join(", ")}</p>
-        </div>
-      )}
+  <div className="results-container mt-6 space-y-4">
+    <div className="result-card">
+      <h3>📝 الملخص</h3>
+      <p>{result.summary}</p>
+    </div>
+
+    <div className="result-card">
+      <h3>😊 المشاعر</h3>
+      <p>{result.sentiment}</p>
+    </div>
+
+    <div className="result-card">
+      <h3>🏷️ الكلمات المفتاحية</h3>
+      <p>{result.keywords.join("، ")}</p>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }
