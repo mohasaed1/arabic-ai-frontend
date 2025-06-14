@@ -81,3 +81,20 @@ aside {
   font-weight: bold;
   font-size: 1.1rem;
 }
+
+.analyze-btn {
+  background: #00eaff;
+  color: #000;
+  font-weight: bold;
+  padding: 0.6rem 1.5rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.analyze-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
