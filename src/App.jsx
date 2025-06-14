@@ -19,7 +19,7 @@ export default function App() {
       <main style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto", display: "grid", gap: "2rem", gridTemplateColumns: "2fr 1fr" }}>
         <section className="card">
           <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>📊 ارفع ملف بيانات (CSV أو Excel)</h2>
-          <DataUploadForm />
+          <SmartDataAnalyzer />
         </section>
 
         <aside className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
