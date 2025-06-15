@@ -1,4 +1,4 @@
-// Smart AI Data Analysis App (Enhanced with Dynamic Chart + Styling)
+// Smart AI Data Analysis App (ChatGPT-style)
 import React, { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
@@ -22,6 +22,7 @@ export default function SmartDataAnalyzer() {
   const [confirmed, setConfirmed] = useState(false);
   const [query, setQuery] = useState("");
   const [aiResponse, setAIResponse] = useState("");
+  const [loading, setLoading] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState("");
   const [chartData, setChartData] = useState(null);
   const [isNumeric, setIsNumeric] = useState(false);
@@ -118,6 +119,9 @@ export default function SmartDataAnalyzer() {
 
   const askAI = async () => {
     if (!query || data.length === 0) return;
+    setLoading(true);
+    setAIResponse("💬 جاري التفكير...");
+
     try {
       const res = await fetch("https://arabic-ai-app-production.up.railway.app/analyze-text", {
         method: "POST",
@@ -125,10 +129,9 @@ export default function SmartDataAnalyzer() {
         body: JSON.stringify({ query, data }),
       });
       const result = await res.json();
-      const reply = result.answer || result.error || "❌ لم يتم العثور على إجابة.";
+      const reply = result.answer || result.error || "❌ لم أتمكن من توليد إجابة في الوقت الحالي.";
       setAIResponse(reply);
 
-      // Attempt to detect a suggested column from reply
       for (const col of columns) {
         if (reply.includes(col)) {
           handleColumnSelect(col);
@@ -136,8 +139,10 @@ export default function SmartDataAnalyzer() {
         }
       }
     } catch (err) {
-      setAIResponse("❌ حدث خطأ أثناء الاتصال بالخادم: " + err.message);
+      setAIResponse("❌ تعذر الوصول إلى الخادم: " + err.message);
     }
+
+    setLoading(false);
   };
 
   const exportChart = () => {
@@ -175,21 +180,24 @@ export default function SmartDataAnalyzer() {
 
       {confirmed && (
         <>
-          <div className="mt-4">
-            <label htmlFor="ai-query">🧠 اسأل الذكاء الاصطناعي عن بياناتك:</label>
+          <div className="mt-4 chat-section">
+            <label htmlFor="ai-query">💬 اطرح سؤالك على الذكاء الاصطناعي:</label>
             <input
               id="ai-query"
               type="text"
-              placeholder="مثلاً: ما هي النسبة بين الربح والتكلفة؟"
+              placeholder="مثلاً: ما هو المنتج الأكثر مبيعاً؟"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              disabled={loading}
             />
-            <button className="btn" onClick={askAI}>🔍 إرسال</button>
-            {aiResponse && <div className="mt-2 result-box" dangerouslySetInnerHTML={{ __html: aiResponse.replace(/\n/g, "<br>") }} />}
+            <button className="btn" onClick={askAI} disabled={loading}>🚀 إرسال</button>
+            <div className="chat-response">
+              {aiResponse && <div className="ai-reply" dangerouslySetInnerHTML={{ __html: aiResponse.replace(/\n/g, "<br>") }} />}
+            </div>
           </div>
 
           <div className="mt-4">
-            <p>📊 اقتراحات الذكاء الاصطناعي:</p>
+            <p>🧠 اقتراحات من الذكاء الاصطناعي:</p>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               {suggestions.map((col) => (
                 <button key={col} className="btn" onClick={() => handleColumnSelect(col)}>
@@ -200,7 +208,7 @@ export default function SmartDataAnalyzer() {
           </div>
 
           <div className="mt-6">
-            <label htmlFor="column-select">🎛 اختر عمودًا لعرض الرسم البياني:</label>
+            <label htmlFor="column-select">📈 اختر عمودًا للرسم البياني:</label>
             <select
               id="column-select"
               value={selectedColumn}
@@ -215,7 +223,7 @@ export default function SmartDataAnalyzer() {
 
           {chartData && (
             <div className="chart-wrapper">
-              <h3>📈 رسم {isNumeric ? "بياني عمودي" : "بياني دائري"} لـ {selectedColumn}</h3>
+              <h3>📊 {isNumeric ? "رسم عمودي" : "رسم دائري"} لـ {selectedColumn}</h3>
               <button className="btn" onClick={exportChart}>📥 حفظ الرسم</button>
               {isNumeric ? (
                 <Bar ref={chartRef} data={{ labels: Object.keys(chartData), datasets: [{ label: selectedColumn, data: Object.values(chartData), backgroundColor: "#3b82f6" }] }} options={{ responsive: true, maintainAspectRatio: false }} />
@@ -227,7 +235,7 @@ export default function SmartDataAnalyzer() {
 
           {insights && (
             <div className="insights-box">
-              <h3>🧠 الملخص الذكي</h3>
+              <h3>📌 ملخص سريع</h3>
               <p>{insights}</p>
             </div>
           )}
