@@ -1,4 +1,4 @@
-// Smart AI Data Analysis App (Enhanced with Backend Chat)
+// Smart AI Data Analysis App (Enhanced with Dynamic Chart + Styling)
 import React, { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
@@ -124,9 +124,17 @@ export default function SmartDataAnalyzer() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, data }),
       });
-
       const result = await res.json();
-      setAIResponse(result.answer || "🤖 لم يتم العثور على إجابة.");
+      const reply = result.answer || result.error || "❌ لم يتم العثور على إجابة.";
+      setAIResponse(reply);
+
+      // Attempt to detect a suggested column from reply
+      for (const col of columns) {
+        if (reply.includes(col)) {
+          handleColumnSelect(col);
+          break;
+        }
+      }
     } catch (err) {
       setAIResponse("❌ حدث خطأ أثناء الاتصال بالخادم: " + err.message);
     }
@@ -177,7 +185,7 @@ export default function SmartDataAnalyzer() {
               onChange={(e) => setQuery(e.target.value)}
             />
             <button className="btn" onClick={askAI}>🔍 إرسال</button>
-            {aiResponse && <p className="mt-2 result-box">{aiResponse}</p>}
+            {aiResponse && <div className="mt-2 result-box" dangerouslySetInnerHTML={{ __html: aiResponse.replace(/\n/g, "<br>") }} />}
           </div>
 
           <div className="mt-4">
