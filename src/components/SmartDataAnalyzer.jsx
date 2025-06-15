@@ -1,4 +1,3 @@
-// Smart AI Data Analyzer (clean + connected to AI Chat)
 import React, { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
@@ -15,12 +14,11 @@ import {
 
 ChartJS.register(BarElement, ArcElement, CategoryScale, LinearScale, Tooltip, Legend);
 
-export default function SmartDataAnalyzer() {
+export default function SmartDataAnalyzer({ onDataReady }) {
   const [fileName, setFileName] = useState("");
-  const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
-  const [selectedColumn, setSelectedColumn] = useState("");
   const [chartData, setChartData] = useState(null);
+  const [selectedColumn, setSelectedColumn] = useState("");
   const [isNumeric, setIsNumeric] = useState(false);
   const chartRef = useRef();
 
@@ -56,15 +54,14 @@ export default function SmartDataAnalyzer() {
   };
 
   const processParsedData = (rows) => {
-    setData(rows);
-    setColumns(Object.keys(rows[0]));
-    setSelectedColumn("");
-    setChartData(null);
+    const fields = Object.keys(rows[0]);
+    setColumns(fields);
+    onDataReady(rows);
   };
 
   const handleColumnSelect = (col) => {
     setSelectedColumn(col);
-    const values = data.map((row) => row[col]).filter(Boolean);
+    const values = JSON.parse(localStorage.getItem("__last_data"))?.map((row) => row[col]).filter(Boolean);
     const numeric = values.every((v) => !isNaN(v));
     setIsNumeric(numeric);
 
@@ -87,63 +84,54 @@ export default function SmartDataAnalyzer() {
   };
 
   return (
-    <div className="form-section" dir="rtl">
-      <h2>📂 ارفع ملف بيانات (CSV أو Excel)</h2>
-      <input type="file" accept=".csv, .xlsx" onChange={handleFileUpload} />
-      {fileName && <p className="mt-2">📄 تم تحميل: {fileName}</p>}
+    <div className="form-section">
+      <h2>📂 ارفع ملف بيانات (Excel أو CSV)</h2>
+      <input type="file" accept=".csv,.xlsx" onChange={handleFileUpload} />
+      {fileName && <p>📄 تم تحميل: {fileName}</p>}
 
       {columns.length > 0 && (
         <>
-          <div className="mt-4">
-            <label htmlFor="column-select">🎯 اختر عمودًا لعرض الرسم البياني:</label>
-            <select
-              id="column-select"
-              value={selectedColumn}
-              onChange={(e) => handleColumnSelect(e.target.value)}
-            >
-              <option value="">-- اختر عمود --</option>
-              {columns.map((col) => (
-                <option key={col} value={col}>{col}</option>
-              ))}
-            </select>
-          </div>
-
-          {chartData && (
-            <div className="chart-wrapper">
-              <h3>📈 عرض {isNumeric ? "عمودي" : "دائري"} لـ {selectedColumn}</h3>
-              <button className="btn" onClick={exportChart}>📥 حفظ الرسم</button>
-              {isNumeric ? (
-                <Bar
-                  ref={chartRef}
-                  data={{
-                    labels: Object.keys(chartData),
-                    datasets: [{
-                      label: selectedColumn,
-                      data: Object.values(chartData),
-                      backgroundColor: "#3b82f6",
-                    }],
-                  }}
-                  options={{ responsive: true, maintainAspectRatio: false }}
-                />
-              ) : (
-                <Pie
-                  ref={chartRef}
-                  data={{
-                    labels: Object.keys(chartData),
-                    datasets: [{
-                      label: selectedColumn,
-                      data: Object.values(chartData),
-                      backgroundColor: [
-                        "#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#6366f1",
-                      ],
-                    }],
-                  }}
-                  options={{ responsive: true, maintainAspectRatio: false }}
-                />
-              )}
-            </div>
-          )}
+          <label htmlFor="column-select">🎯 اختر عمودًا لعرض الرسم البياني:</label>
+          <select id="column-select" value={selectedColumn} onChange={(e) => handleColumnSelect(e.target.value)}>
+            <option value="">-- اختر عمود --</option>
+            {columns.map((col) => (
+              <option key={col} value={col}>{col}</option>
+            ))}
+          </select>
         </>
+      )}
+
+      {chartData && (
+        <div className="chart-wrapper">
+          <h3>📊 عرض {isNumeric ? "عمودي" : "دائري"} لـ {selectedColumn}</h3>
+          <button className="btn" onClick={exportChart}>📥 حفظ الرسم</button>
+          {isNumeric ? (
+            <Bar
+              ref={chartRef}
+              data={{
+                labels: Object.keys(chartData),
+                datasets: [{
+                  label: selectedColumn,
+                  data: Object.values(chartData),
+                  backgroundColor: "#3b82f6",
+                }],
+              }}
+              options={{ responsive: true, maintainAspectRatio: false }}
+            />
+          ) : (
+            <Pie
+              ref={chartRef}
+              data={{
+                labels: Object.keys(chartData),
+                datasets: [{
+                  label: selectedColumn,
+                  data: Object.values(chartData),
+                }],
+              }}
+              options={{ responsive: true, maintainAspectRatio: false }}
+            />
+          )}
+        </div>
       )}
     </div>
   );
