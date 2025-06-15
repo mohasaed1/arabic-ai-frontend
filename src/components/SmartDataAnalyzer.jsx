@@ -1,4 +1,4 @@
-// Smart AI Data Analysis App (with .xlsx, AI Chat, Chart Export)
+// Smart AI Data Analysis App (Enhanced with Backend Chat)
 import React, { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
@@ -118,13 +118,18 @@ export default function SmartDataAnalyzer() {
 
   const askAI = async () => {
     if (!query || data.length === 0) return;
-    const res = await fetch("https://api.gateofai.com/analyze-text", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, data }),
-    });
-    const result = await res.json();
-    setAIResponse(result.answer || "🤖 لم يتم العثور على إجابة.");
+    try {
+      const res = await fetch("https://arabic-ai-app-production.up.railway.app/analyze-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, data }),
+      });
+
+      const result = await res.json();
+      setAIResponse(result.answer || "🤖 لم يتم العثور على إجابة.");
+    } catch (err) {
+      setAIResponse("❌ حدث خطأ أثناء الاتصال بالخادم: " + err.message);
+    }
   };
 
   const exportChart = () => {
@@ -148,19 +153,11 @@ export default function SmartDataAnalyzer() {
           <h3>📋 معاينة ({data.length} صف)</h3>
           <table className="data-table">
             <thead>
-              <tr>
-                {columns.map((col) => (
-                  <th key={col}>{col}</th>
-                ))}
-              </tr>
+              <tr>{columns.map((col) => <th key={col}>{col}</th>)}</tr>
             </thead>
             <tbody>
               {data.slice(0, 5).map((row, i) => (
-                <tr key={i}>
-                  {columns.map((col) => (
-                    <td key={col}>{row[col]}</td>
-                  ))}
-                </tr>
+                <tr key={i}>{columns.map((col) => <td key={col}>{row[col]}</td>)}</tr>
               ))}
             </tbody>
           </table>
@@ -187,11 +184,7 @@ export default function SmartDataAnalyzer() {
             <p>📊 اقتراحات الذكاء الاصطناعي:</p>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               {suggestions.map((col) => (
-                <button
-                  key={col}
-                  className="btn"
-                  onClick={() => handleColumnSelect(col)}
-                >
+                <button key={col} className="btn" onClick={() => handleColumnSelect(col)}>
                   {col}
                 </button>
               ))}
@@ -217,31 +210,9 @@ export default function SmartDataAnalyzer() {
               <h3>📈 رسم {isNumeric ? "بياني عمودي" : "بياني دائري"} لـ {selectedColumn}</h3>
               <button className="btn" onClick={exportChart}>📥 حفظ الرسم</button>
               {isNumeric ? (
-                <Bar
-                  ref={chartRef}
-                  data={{
-                    labels: Object.keys(chartData),
-                    datasets: [{
-                      label: selectedColumn,
-                      data: Object.values(chartData),
-                      backgroundColor: "#3b82f6",
-                    }],
-                  }}
-                  options={{ responsive: true, maintainAspectRatio: false }}
-                />
+                <Bar ref={chartRef} data={{ labels: Object.keys(chartData), datasets: [{ label: selectedColumn, data: Object.values(chartData), backgroundColor: "#3b82f6" }] }} options={{ responsive: true, maintainAspectRatio: false }} />
               ) : (
-                <Pie
-                  ref={chartRef}
-                  data={{
-                    labels: Object.keys(chartData),
-                    datasets: [{
-                      label: selectedColumn,
-                      data: Object.values(chartData),
-                      backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#6366f1"],
-                    }],
-                  }}
-                  options={{ responsive: true, maintainAspectRatio: false }}
-                />
+                <Pie ref={chartRef} data={{ labels: Object.keys(chartData), datasets: [{ label: selectedColumn, data: Object.values(chartData), backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#6366f1"] }] }} options={{ responsive: true, maintainAspectRatio: false }} />
               )}
             </div>
           )}
