@@ -1,7 +1,11 @@
+import React, { useState } from "react";
 import SmartDataAnalyzer from "./components/SmartDataAnalyzer";
+import SmartChat from "./components/SmartChat";
 import "./theme.css";
 
 export default function App() {
+  const [fileData, setFileData] = useState([]);
+
   return (
     <div className="app-wrapper" dir="rtl">
       <header style={{
@@ -18,33 +22,25 @@ export default function App() {
 
       <main style={{
         padding: "2rem",
-        maxWidth: "1200px",
+        maxWidth: "1100px",
         margin: "0 auto",
-        display: "grid",
-        gap: "2rem",
-        gridTemplateColumns: "2fr 1fr"
+        display: "flex",
+        flexDirection: "column",
+        gap: "2rem"
       }}>
-        <section className="card" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-          <div>
-            <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>📊 ارفع ملف بيانات (CSV أو Excel)</h2>
-            <SmartDataAnalyzer />
-          </div>
-        </section>
-
-        <aside className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-          <div>
-            <h3 style={{ fontSize: "1.1rem", marginBottom: "0.5rem" }}>🧾 عن الأداة</h3>
-            <ul style={{ paddingRight: "1.2rem", color: "var(--text-muted)", lineHeight: "1.6" }}>
-              <li>تحليل الجداول والبيانات</li>
-              <li>ملخص ذكي للبيانات</li>
-              <li>اقتراحات وتصورات</li>
-            </ul>
-          </div>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "2rem" }}>
-            GateOfAI.com © 2025
-          </div>
-        </aside>
+        <SmartDataAnalyzer onDataReady={setFileData} />
+        {fileData.length > 0 && <SmartChat fileData={fileData} />}
       </main>
+
+      <footer style={{
+        textAlign: "center",
+        fontSize: "0.75rem",
+        color: "var(--text-muted)",
+        marginTop: "4rem",
+        paddingBottom: "2rem"
+      }}>
+        GateOfAI.com © 2025
+      </footer>
     </div>
   );
 }
