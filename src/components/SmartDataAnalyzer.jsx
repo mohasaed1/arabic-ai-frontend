@@ -1,5 +1,5 @@
-// Smart AI Data Analysis App (ChatGPT-style)
-import React, { useState, useRef } from "react";
+// Smart AI Data Analysis App (Chat Bubble + Model Switch + Auto Scroll + Lang Detect)
+import React, { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
 import { Bar, Pie } from "react-chartjs-2";
@@ -21,14 +21,22 @@ export default function SmartDataAnalyzer() {
   const [columns, setColumns] = useState([]);
   const [confirmed, setConfirmed] = useState(false);
   const [query, setQuery] = useState("");
-  const [aiResponse, setAIResponse] = useState("");
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState("");
   const [chartData, setChartData] = useState(null);
   const [isNumeric, setIsNumeric] = useState(false);
   const [insights, setInsights] = useState("");
   const [suggestions, setSuggestions] = useState([]);
+  const [model, setModel] = useState("gpt-4");
+  const bottomRef = useRef();
   const chartRef = useRef();
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const detectLang = (text) => /[\u0600-\u06FF]/.test(text) ? "ar" : "en";
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -55,11 +63,7 @@ export default function SmartDataAnalyzer() {
       }
     };
 
-    if (ext === "csv") {
-      reader.readAsText(file);
-    } else if (ext === "xlsx") {
-      reader.readAsBinaryString(file);
-    }
+    ext === "csv" ? reader.readAsText(file) : reader.readAsBinaryString(file);
   };
 
   const processParsedData = (rows, fields) => {
@@ -70,7 +74,7 @@ export default function SmartDataAnalyzer() {
     setChartData(null);
     setInsights("");
     setSuggestions([]);
-    setAIResponse("");
+    setMessages([]);
   };
 
   const confirmAndAnalyze = () => {
@@ -119,18 +123,23 @@ export default function SmartDataAnalyzer() {
 
   const askAI = async () => {
     if (!query || data.length === 0) return;
+    const userLang = detectLang(query);
+    const userMsg = { role: "user", content: query, lang: userLang };
+
+    setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
-    setAIResponse("💬 جاري التفكير...");
 
     try {
       const res = await fetch("https://arabic-ai-app-production.up.railway.app/analyze-text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, data }),
+        body: JSON.stringify({ query, data, model }),
       });
       const result = await res.json();
-      const reply = result.answer || result.error || "❌ لم أتمكن من توليد إجابة في الوقت الحالي.";
-      setAIResponse(reply);
+      const reply = result.answer || result.error || "❌ لم أتمكن من توليد إجابة.";
+
+      const assistantMsg = { role: "assistant", content: reply };
+      setMessages((prev) => [...prev, assistantMsg]);
 
       for (const col of columns) {
         if (reply.includes(col)) {
@@ -139,9 +148,10 @@ export default function SmartDataAnalyzer() {
         }
       }
     } catch (err) {
-      setAIResponse("❌ تعذر الوصول إلى الخادم: " + err.message);
+      setMessages((prev) => [...prev, { role: "assistant", content: "❌ تعذر الاتصال بالخادم: " + err.message }]);
     }
 
+    setQuery("");
     setLoading(false);
   };
 
@@ -181,23 +191,37 @@ export default function SmartDataAnalyzer() {
       {confirmed && (
         <>
           <div className="mt-4 chat-section">
-            <label htmlFor="ai-query">💬 اطرح سؤالك على الذكاء الاصطناعي:</label>
+            <label htmlFor="ai-query">💬 اسألني عن بياناتك</label>
+            <div className="model-switch">
+              <label>النموذج:</label>
+              <select value={model} onChange={(e) => setModel(e.target.value)}>
+                <option value="gpt-4">GPT-4</option>
+                <option value="gpt-3.5-turbo">GPT-3.5</option>
+              </select>
+            </div>
             <input
               id="ai-query"
               type="text"
-              placeholder="مثلاً: ما هو المنتج الأكثر مبيعاً؟"
+              placeholder="ما هي النسبة بين الربح والتكلفة؟"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               disabled={loading}
             />
             <button className="btn" onClick={askAI} disabled={loading}>🚀 إرسال</button>
-            <div className="chat-response">
-              {aiResponse && <div className="ai-reply" dangerouslySetInnerHTML={{ __html: aiResponse.replace(/\n/g, "<br>") }} />}
+
+            <div className="chat-messages">
+              {messages.map((msg, i) => (
+                <div key={i} className={`bubble ${msg.role}`}>
+                  {msg.content}
+                </div>
+              ))}
+              {loading && <div className="bubble assistant">✍️ جارٍ توليد الرد...</div>}
+              <div ref={bottomRef}></div>
             </div>
           </div>
 
           <div className="mt-4">
-            <p>🧠 اقتراحات من الذكاء الاصطناعي:</p>
+            <p>🧠 اقتراحات:</p>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               {suggestions.map((col) => (
                 <button key={col} className="btn" onClick={() => handleColumnSelect(col)}>
@@ -208,7 +232,7 @@ export default function SmartDataAnalyzer() {
           </div>
 
           <div className="mt-6">
-            <label htmlFor="column-select">📈 اختر عمودًا للرسم البياني:</label>
+            <label htmlFor="column-select">📈 اختر عمودًا للرسم:</label>
             <select
               id="column-select"
               value={selectedColumn}
