@@ -1,5 +1,4 @@
 import SmartDataAnalyzer from "./components/SmartDataAnalyzer";
-import SmartChat from "./components/SmartChat";
 import "./theme.css";
 
 export default function App() {
@@ -30,8 +29,6 @@ export default function App() {
             <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>📊 ارفع ملف بيانات (CSV أو Excel)</h2>
             <SmartDataAnalyzer />
           </div>
-
-          <SmartChat />
         </section>
 
         <aside className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
