@@ -1,4 +1,4 @@
-// Smart AI Data Analysis App (Final UX Polished Version)
+// Smart AI Data Analysis App (Pro Chat Layout, Streamlined UI, Short Responses)
 import React, { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
@@ -22,6 +22,7 @@ export default function SmartDataAnalyzer() {
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [typingDots, setTypingDots] = useState(".");
   const [selectedColumn, setSelectedColumn] = useState("");
   const [chartData, setChartData] = useState(null);
   const [isNumeric, setIsNumeric] = useState(false);
@@ -31,6 +32,14 @@ export default function SmartDataAnalyzer() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!loading) return;
+    const interval = setInterval(() => {
+      setTypingDots((prev) => (prev.length < 3 ? prev + "." : "."));
+    }, 400);
+    return () => clearInterval(interval);
+  }, [loading]);
 
   const detectLang = (text) => /[\u0600-\u06FF]/.test(text) ? "ar" : "en";
 
@@ -102,7 +111,8 @@ export default function SmartDataAnalyzer() {
       const result = await res.json();
       const reply = result.answer || result.error || "❌ لم أتمكن من توليد إجابة.";
 
-      const assistantMsg = { role: "assistant", content: reply };
+      const trimmed = reply.split(". ").slice(0, 2).join(". ") + ".";
+      const assistantMsg = { role: "assistant", content: trimmed };
       setMessages((prev) => [...prev, assistantMsg]);
 
       for (const col of columns) {
@@ -128,62 +138,68 @@ export default function SmartDataAnalyzer() {
     link.click();
   };
 
+  const resetChat = () => setMessages([]);
+
   return (
-    <div className="ai-dashboard" dir="rtl">
-      <section className="upload-bar">
-        <h2>📊 ارفع ملف بيانات (CSV أو Excel)</h2>
-        <input type="file" accept=".csv, .xlsx" onChange={handleFileUpload} />
+    <div className="ai-pro-app" dir="rtl">
+      <header className="pro-navbar">
+        <div className="brand">GateOfAI</div>
+        <nav>
+          <a href="/">الرئيسية</a>
+          <a href="/ai-tools">الأدوات</a>
+          <a href="/help">مساعدة</a>
+        </nav>
+      </header>
+
+      <section className="data-upload">
+        <h2>📁 ارفع ملف بيانات (CSV أو Excel)</h2>
+        <input type="file" accept=".csv,.xlsx" onChange={handleFileUpload} />
         {fileName && <p>📄 تم تحميل: {fileName}</p>}
       </section>
 
       {data.length > 0 && (
-        <div className="chat-ui">
-          <h3>🤖 استفسر عن بياناتك:</h3>
-          <div className="chat-box">
-            <div className="chat-stream">
+        <section className="chat-layout">
+          <div className="chat-window">
+            <div className="chat-log">
               {messages.map((msg, i) => (
-                <div key={i} className={`bubble ${msg.role}`}>{msg.content}</div>
+                <div key={i} className={`msg ${msg.role}`}>{msg.content}</div>
               ))}
-              {loading && <div className="bubble assistant">✍️ جارٍ توليد الرد...</div>}
+              {loading && <div className="msg assistant">✍️ يكتب{typingDots}</div>}
               <div ref={bottomRef}></div>
             </div>
-            <div className="chat-input">
+            <div className="chat-controls">
               <input
                 type="text"
-                placeholder="اكتب سؤالك هنا..."
+                placeholder="اكتب سؤالك..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                disabled={loading}
               />
-              <button onClick={askAI} disabled={loading}>📤</button>
+              <button onClick={askAI}>🚀</button>
+              <button onClick={resetChat} className="clear-btn">♻️</button>
             </div>
           </div>
 
-          <div className="mt-4">
-            <label>🎯 اختر عمود لعرض الرسم البياني:</label>
-            <select
-              value={selectedColumn}
-              onChange={(e) => handleColumnSelect(e.target.value)}
-            >
+          <div className="chart-config">
+            <label>🎯 اختر عمود للرسم البياني:</label>
+            <select value={selectedColumn} onChange={(e) => handleColumnSelect(e.target.value)}>
               <option value="">-- اختر عمود --</option>
               {columns.map((col) => (
                 <option key={col} value={col}>{col}</option>
               ))}
             </select>
+            {chartData && (
+              <div className="chart-display">
+                <h3>📊 عرض {isNumeric ? "عمودي" : "دائري"} لـ {selectedColumn}</h3>
+                <button className="btn" onClick={exportChart}>📥 حفظ</button>
+                {isNumeric ? (
+                  <Bar ref={chartRef} data={{ labels: Object.keys(chartData), datasets: [{ label: selectedColumn, data: Object.values(chartData), backgroundColor: "#3b82f6" }] }} options={{ responsive: true, maintainAspectRatio: false }} />
+                ) : (
+                  <Pie ref={chartRef} data={{ labels: Object.keys(chartData), datasets: [{ label: selectedColumn, data: Object.values(chartData), backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#6366f1"] }] }} options={{ responsive: true, maintainAspectRatio: false }} />
+                )}
+              </div>
+            )}
           </div>
-
-          {chartData && (
-            <div className="chart-wrapper">
-              <h3>📈 عرض {isNumeric ? "عمودي" : "دائري"} لـ {selectedColumn}</h3>
-              <button className="btn" onClick={exportChart}>📥 حفظ الرسم</button>
-              {isNumeric ? (
-                <Bar ref={chartRef} data={{ labels: Object.keys(chartData), datasets: [{ label: selectedColumn, data: Object.values(chartData), backgroundColor: "#3b82f6" }] }} options={{ responsive: true, maintainAspectRatio: false }} />
-              ) : (
-                <Pie ref={chartRef} data={{ labels: Object.keys(chartData), datasets: [{ label: selectedColumn, data: Object.values(chartData), backgroundColor: ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#6366f1"] }] }} options={{ responsive: true, maintainAspectRatio: false }} />
-              )}
-            </div>
-          )}
-        </div>
+        </section>
       )}
     </div>
   );
