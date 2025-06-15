@@ -12,11 +12,12 @@ export default function SmartChat() {
     setResponse("");
 
     try {
-      const res = await fetch("https://arabic-ai-backend.onrender.com/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input })
-      });
+     const res = await fetch("https://arabic-ai-app-production.up.railway.app/chat", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ message: input })
+});
+
       const data = await res.json();
       setResponse(data.reply || data.error || "❌ No response from AI.");
     } catch (err) {
