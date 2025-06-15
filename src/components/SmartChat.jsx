@@ -1,50 +1,96 @@
 // src/components/SmartChat.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 
-export default function SmartChat() {
+export default function SmartChat({ data }) {
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef(null);
 
-  const handleChat = async () => {
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
+  const handleSend = async () => {
     if (!input.trim()) return;
+    const userMessage = { role: "user", content: input };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
     setLoading(true);
-    setResponse("");
 
     try {
-     const res = await fetch("https://arabic-ai-app-production.up.railway.app/chat", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ message: input })
-});
-
-      const data = await res.json();
-      setResponse(data.reply || data.error || "❌ No response from AI.");
+      const res = await fetch("https://arabic-ai-app-production.up.railway.app/analyze-text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: input, data }),
+      });
+      const result = await res.json();
+      const botMessage = {
+        role: "assistant",
+        content: result.answer || "❌ لم أتمكن من العثور على إجابة واضحة من البيانات المرفقة.",
+      };
+      setMessages((prev) => [...prev, botMessage]);
     } catch (err) {
-      setResponse("❌ Failed to connect to AI: " + err.message);
+      setMessages((prev) => [...prev, {
+        role: "assistant",
+        content: `❌ خطأ في الاتصال بالخادم: ${err.message}`,
+      }]);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const clearChat = () => {
+    setMessages([]);
+    setInput("");
+  };
+
   return (
-    <div className="card">
-      <h3>💬 استشارة ذكية بالذكاء الاصطناعي</h3>
+    <div className="form-section" style={{ marginTop: "3rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h3>💬 استفسر عن بياناتك:</h3>
+        <button className="btn" onClick={clearChat}>🔄 إعادة المحادثة</button>
+      </div>
+
+      <div className="chat-bubbles" style={{ marginTop: "1rem", maxHeight: "400px", overflowY: "auto" }}>
+        {messages.map((msg, idx) => (
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`bubble ${msg.role}`}
+          >
+            {msg.content}
+          </motion.div>
+        ))}
+        {loading && (
+          <motion.div className="bubble assistant" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }}>
+            يكتب...
+          </motion.div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
       <textarea
-        placeholder="اسأل كيف يمكن تحسين المبيعات أو البيانات..."
+        placeholder="اكتب سؤالك هنا..."
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        rows={4}
-        style={{ width: "100%", marginBottom: "1rem" }}
+        onKeyDown={handleKeyDown}
+        rows={2}
       />
-      <button onClick={handleChat} disabled={loading}>
-        {loading ? "جاري التفكير..." : "أرسل"}
+      <button className="btn" onClick={handleSend} disabled={loading}>
+        🚀 إرسال
       </button>
-      {response && (
-        <div className="mt-4" style={{ whiteSpace: "pre-wrap" }}>
-          <strong>الرد:</strong><br />{response}
-        </div>
-      )}
     </div>
   );
 }
