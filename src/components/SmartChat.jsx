@@ -1,96 +1,94 @@
-// src/components/SmartChat.jsx
-import React, { useState, useEffect, useRef } from "react";
+""import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import "../theme.css";
 
-export default function SmartChat({ data }) {
+export default function SmartChat({ fileData }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const messagesEndRef = useRef(null);
+  const chatEndRef = useRef(null);
+
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages]);
+    scrollToBottom();
+  }, [messages, loading]);
 
-  const handleSend = async () => {
+  const sendMessage = async () => {
     if (!input.trim()) return;
-    const userMessage = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
+    const newMessage = { role: "user", content: input };
+    setMessages((prev) => [...prev, newMessage]);
     setInput("");
     setLoading(true);
 
     try {
-      const res = await fetch("https://arabic-ai-app-production.up.railway.app/analyze-text", {
+      const res = await fetch("https://api.gateofai.com/analyze-text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: input, data }),
+        body: JSON.stringify({ query: input, data: fileData }),
       });
-      const result = await res.json();
-      const botMessage = {
-        role: "assistant",
-        content: result.answer || "❌ لم أتمكن من العثور على إجابة واضحة من البيانات المرفقة.",
-      };
-      setMessages((prev) => [...prev, botMessage]);
+      const data = await res.json();
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: data.answer || "❌ لم أتمكن من فهم سؤالك." },
+      ]);
     } catch (err) {
-      setMessages((prev) => [...prev, {
-        role: "assistant",
-        content: `❌ خطأ في الاتصال بالخادم: ${err.message}`,
-      }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "❌ حدث خطأ في الاتصال بالخادم." },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const clearChat = () => {
+  const resetChat = () => {
     setMessages([]);
     setInput("");
   };
 
   return (
-    <div className="form-section" style={{ marginTop: "3rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h3>💬 استفسر عن بياناتك:</h3>
-        <button className="btn" onClick={clearChat}>🔄 إعادة المحادثة</button>
+    <div className="chat-box">
+      <div className="chat-header">
+        <h3>🤖 استفسر عن بياناتك:</h3>
+        <button className="btn clear-btn" onClick={resetChat}>♻️ مسح المحادثة</button>
       </div>
 
-      <div className="chat-bubbles" style={{ marginTop: "1rem", maxHeight: "400px", overflowY: "auto" }}>
+      <div className="chat-history">
         {messages.map((msg, idx) => (
           <motion.div
             key={idx}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`bubble ${msg.role}`}
+            className={`chat-bubble ${msg.role}`}
           >
-            {msg.content}
+            <span>{msg.content}</span>
           </motion.div>
         ))}
         {loading && (
-          <motion.div className="bubble assistant" animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }}>
-            يكتب...
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="chat-bubble assistant"
+          >
+            <span>...يكتب</span>
           </motion.div>
         )}
-        <div ref={messagesEndRef} />
+        <div ref={chatEndRef} />
       </div>
 
-      <textarea
-        placeholder="اكتب سؤالك هنا..."
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        rows={2}
-      />
-      <button className="btn" onClick={handleSend} disabled={loading}>
-        🚀 إرسال
-      </button>
+      <div className="chat-input">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="اكتب سؤالك هنا..."
+          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+        />
+        <button className="btn" onClick={sendMessage}>📤 إرسال</button>
+      </div>
     </div>
   );
 }
