@@ -1,4 +1,4 @@
-// Smart AI Data Analysis App (Chat Bubble + Model Switch + Auto Scroll + Lang Detect)
+// Smart AI Data Analysis App (Final UX Polished Version)
 import React, { useState, useRef, useEffect } from "react";
 import * as XLSX from "xlsx";
 import Papa from "papaparse";
@@ -19,16 +19,12 @@ export default function SmartDataAnalyzer() {
   const [fileName, setFileName] = useState("");
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
-  const [confirmed, setConfirmed] = useState(false);
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedColumn, setSelectedColumn] = useState("");
   const [chartData, setChartData] = useState(null);
   const [isNumeric, setIsNumeric] = useState(false);
-  const [insights, setInsights] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [model, setModel] = useState("gpt-4");
   const bottomRef = useRef();
   const chartRef = useRef();
 
@@ -69,18 +65,9 @@ export default function SmartDataAnalyzer() {
   const processParsedData = (rows, fields) => {
     setColumns(fields);
     setData(rows);
-    setConfirmed(false);
-    setSelectedColumn("");
-    setChartData(null);
-    setInsights("");
-    setSuggestions([]);
     setMessages([]);
-  };
-
-  const confirmAndAnalyze = () => {
-    setConfirmed(true);
-    setInsights(generateAIInsights(data, columns));
-    setSuggestions(columns.slice(0, 3));
+    setChartData(null);
+    setSelectedColumn("");
   };
 
   const handleColumnSelect = (col) => {
@@ -98,29 +85,6 @@ export default function SmartDataAnalyzer() {
     setChartData(freqMap);
   };
 
-  const generateAIInsights = (rows, fields) => {
-    if (!rows || rows.length === 0) return "📭 لا توجد بيانات لتحليلها.";
-    let lines = [];
-    fields.forEach((field) => {
-      const values = rows.map((r) => r[field]).filter(Boolean);
-      if (values.every((v) => !isNaN(v))) {
-        const nums = values.map(Number);
-        const avg = (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2);
-        lines.push(`📊 متوسط ${field}: ${avg}`);
-      } else {
-        const top = mostCommon(values);
-        lines.push(`🔤 التكرار الأعلى لـ ${field}: ${top}`);
-      }
-    });
-    return lines.join(" | ");
-  };
-
-  const mostCommon = (arr) => {
-    const freq = {};
-    for (let item of arr) freq[item] = (freq[item] || 0) + 1;
-    return Object.entries(freq).sort((a, b) => b[1] - a[1])[0][0];
-  };
-
   const askAI = async () => {
     if (!query || data.length === 0) return;
     const userLang = detectLang(query);
@@ -133,7 +97,7 @@ export default function SmartDataAnalyzer() {
       const res = await fetch("https://arabic-ai-app-production.up.railway.app/analyze-text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, data, model }),
+        body: JSON.stringify({ query, data }),
       });
       const result = await res.json();
       const reply = result.answer || result.error || "❌ لم أتمكن من توليد إجابة.";
@@ -148,7 +112,7 @@ export default function SmartDataAnalyzer() {
         }
       }
     } catch (err) {
-      setMessages((prev) => [...prev, { role: "assistant", content: "❌ تعذر الاتصال بالخادم: " + err.message }]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "❌ خطأ: " + err.message }]);
     }
 
     setQuery("");
@@ -165,76 +129,39 @@ export default function SmartDataAnalyzer() {
   };
 
   return (
-    <div className="form-section" dir="rtl">
-      <h2>🤖 منصة تحليل البيانات الذكية</h2>
-      <p>📁 يدعم CSV و Excel مع تحليل تفاعلي وذكي</p>
-      <input type="file" accept=".csv, .xlsx" onChange={handleFileUpload} />
-      {fileName && <p className="mt-2">📄 تم تحميل: {fileName}</p>}
+    <div className="ai-dashboard" dir="rtl">
+      <section className="upload-bar">
+        <h2>📊 ارفع ملف بيانات (CSV أو Excel)</h2>
+        <input type="file" accept=".csv, .xlsx" onChange={handleFileUpload} />
+        {fileName && <p>📄 تم تحميل: {fileName}</p>}
+      </section>
 
-      {data.length > 0 && !confirmed && (
-        <>
-          <h3>📋 معاينة ({data.length} صف)</h3>
-          <table className="data-table">
-            <thead>
-              <tr>{columns.map((col) => <th key={col}>{col}</th>)}</tr>
-            </thead>
-            <tbody>
-              {data.slice(0, 5).map((row, i) => (
-                <tr key={i}>{columns.map((col) => <td key={col}>{row[col]}</td>)}</tr>
-              ))}
-            </tbody>
-          </table>
-          <button className="btn" onClick={confirmAndAnalyze}>✅ تحليل البيانات</button>
-        </>
-      )}
-
-      {confirmed && (
-        <>
-          <div className="mt-4 chat-section">
-            <label htmlFor="ai-query">💬 اسألني عن بياناتك</label>
-            <div className="model-switch">
-              <label>النموذج:</label>
-              <select value={model} onChange={(e) => setModel(e.target.value)}>
-                <option value="gpt-4">GPT-4</option>
-                <option value="gpt-3.5-turbo">GPT-3.5</option>
-              </select>
-            </div>
-            <input
-              id="ai-query"
-              type="text"
-              placeholder="ما هي النسبة بين الربح والتكلفة؟"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              disabled={loading}
-            />
-            <button className="btn" onClick={askAI} disabled={loading}>🚀 إرسال</button>
-
-            <div className="chat-messages">
+      {data.length > 0 && (
+        <div className="chat-ui">
+          <h3>🤖 استفسر عن بياناتك:</h3>
+          <div className="chat-box">
+            <div className="chat-stream">
               {messages.map((msg, i) => (
-                <div key={i} className={`bubble ${msg.role}`}>
-                  {msg.content}
-                </div>
+                <div key={i} className={`bubble ${msg.role}`}>{msg.content}</div>
               ))}
               {loading && <div className="bubble assistant">✍️ جارٍ توليد الرد...</div>}
               <div ref={bottomRef}></div>
             </div>
-          </div>
-
-          <div className="mt-4">
-            <p>🧠 اقتراحات:</p>
-            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-              {suggestions.map((col) => (
-                <button key={col} className="btn" onClick={() => handleColumnSelect(col)}>
-                  {col}
-                </button>
-              ))}
+            <div className="chat-input">
+              <input
+                type="text"
+                placeholder="اكتب سؤالك هنا..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                disabled={loading}
+              />
+              <button onClick={askAI} disabled={loading}>📤</button>
             </div>
           </div>
 
-          <div className="mt-6">
-            <label htmlFor="column-select">📈 اختر عمودًا للرسم:</label>
+          <div className="mt-4">
+            <label>🎯 اختر عمود لعرض الرسم البياني:</label>
             <select
-              id="column-select"
               value={selectedColumn}
               onChange={(e) => handleColumnSelect(e.target.value)}
             >
@@ -247,7 +174,7 @@ export default function SmartDataAnalyzer() {
 
           {chartData && (
             <div className="chart-wrapper">
-              <h3>📊 {isNumeric ? "رسم عمودي" : "رسم دائري"} لـ {selectedColumn}</h3>
+              <h3>📈 عرض {isNumeric ? "عمودي" : "دائري"} لـ {selectedColumn}</h3>
               <button className="btn" onClick={exportChart}>📥 حفظ الرسم</button>
               {isNumeric ? (
                 <Bar ref={chartRef} data={{ labels: Object.keys(chartData), datasets: [{ label: selectedColumn, data: Object.values(chartData), backgroundColor: "#3b82f6" }] }} options={{ responsive: true, maintainAspectRatio: false }} />
@@ -256,14 +183,7 @@ export default function SmartDataAnalyzer() {
               )}
             </div>
           )}
-
-          {insights && (
-            <div className="insights-box">
-              <h3>📌 ملخص سريع</h3>
-              <p>{insights}</p>
-            </div>
-          )}
-        </>
+        </div>
       )}
     </div>
   );
