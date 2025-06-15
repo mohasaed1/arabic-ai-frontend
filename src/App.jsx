@@ -1,9 +1,10 @@
 import SmartDataAnalyzer from "./components/SmartDataAnalyzer";
+import SmartChat from "./components/SmartChat";
 import "./theme.css";
 
 export default function App() {
   return (
-    <div className="app-wrapper">
+    <div className="app-wrapper" dir="rtl">
       <header style={{
         background: "var(--bg-accent)",
         padding: "1rem 2rem",
@@ -16,10 +17,21 @@ export default function App() {
         <a href="https://gateofai.com/logout" style={{ fontSize: "0.9rem", color: "var(--primary)" }}>تسجيل الخروج</a>
       </header>
 
-      <main style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto", display: "grid", gap: "2rem", gridTemplateColumns: "2fr 1fr" }}>
-        <section className="card">
-          <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>📊 ارفع ملف بيانات (CSV أو Excel)</h2>
-          <SmartDataAnalyzer />
+      <main style={{
+        padding: "2rem",
+        maxWidth: "1200px",
+        margin: "0 auto",
+        display: "grid",
+        gap: "2rem",
+        gridTemplateColumns: "2fr 1fr"
+      }}>
+        <section className="card" style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+          <div>
+            <h2 style={{ fontSize: "1.25rem", marginBottom: "1rem" }}>📊 ارفع ملف بيانات (CSV أو Excel)</h2>
+            <SmartDataAnalyzer />
+          </div>
+
+          <SmartChat />
         </section>
 
         <aside className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
