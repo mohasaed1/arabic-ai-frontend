@@ -1,88 +1,89 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
+import { LoaderCircle, Trash2 } from "lucide-react";
 import Markdown from "react-markdown";
-import { Loader } from "lucide-react";
-import "../theme.css";
 
 export default function SmartChat({ fileData }) {
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const bottomRef = useRef(null);
 
-  const sendMessage = async () => {
+  const handleSubmit = async () => {
     if (!input.trim()) return;
-    const newUserMessage = { role: "user", content: input };
-    setMessages((prev) => [...prev, newUserMessage]);
+    const newMessages = [...messages, { role: "user", content: input }];
+    setMessages(newMessages);
     setInput("");
     setLoading(true);
 
     try {
-      const res = await fetch("https://arabic-ai-app-production.up.railway.app/chat", {
+      const res = await fetch("https://arabic-ai-app.up.railway.app/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: input, data: fileData })
+        body: JSON.stringify({
+          message: input,
+          data: fileData,
+        }),
       });
-
-      const data = await res.json();
-      const aiMsg = {
-        role: "assistant",
-        content: data.reply || "❌ لم يتم العثور على إجابة."
-      };
-      setMessages((prev) => [...prev, aiMsg]);
+      const result = await res.json();
+      const reply = result?.reply || "❌ No answer was found.";
+      setMessages([...newMessages, { role: "assistant", content: reply }]);
     } catch (err) {
-      setMessages((prev) => [...prev, { role: "assistant", content: `❌ حدث خطأ: ${err.message}` }]);
+      setMessages([
+        ...newMessages,
+        { role: "assistant", content: "❌ Server communication failed." },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+  const handleClear = () => {
+    setMessages([]);
+    setInput("");
   };
 
-  const clearChat = () => setMessages([]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
   return (
-    <div className="chat-box">
-      <div className="chat-header">
-        <h3>🤖 استفسر عن بياناتك:</h3>
-        <button onClick={clearChat} className="btn clear-btn">🧹 مسح</button>
-      </div>
-
-      <div className="chat-log">
+    <div className="form-section" dir="rtl">
+      <h3>🤖 Ask about your data:</h3>
+      <div className="results-container">
         {messages.map((msg, i) => (
-          <div key={i} className={`chat-msg ${msg.role}`}>
-            <div className="bubble">
-              <Markdown>{msg.content}</Markdown>
-            </div>
+          <div
+            key={i}
+            className={`result-card ${
+              msg.role === "user"
+                ? "bg-white text-black"
+                : "bg-gray-100 text-blue-800"
+            }`}
+            style={{ marginBottom: "1rem" }}
+          >
+            <Markdown>{msg.content}</Markdown>
           </div>
         ))}
         {loading && (
-          <div className="chat-msg assistant">
-            <div className="bubble typing">
-              <Loader size={18} className="spin" /> جارٍ التفكير...
-            </div>
-          </div>
+          <p>
+            <LoaderCircle className="animate-spin" /> Processing...
+          </p>
         )}
-        <div ref={bottomRef} />
       </div>
 
-      <div className="chat-input">
-        <textarea
-          placeholder="اكتب سؤالك هنا..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyPress}
-        />
-        <button onClick={sendMessage} className="btn send-btn">📨 إرسال</button>
+      <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+        <button className="btn" onClick={handleSubmit} disabled={loading}>
+          📤 Send
+        </button>
+        <button
+          className="btn"
+          style={{ background: "#ef4444" }}
+          onClick={handleClear}
+        >
+          <Trash2 size={16} /> Clear
+        </button>
       </div>
+      <input
+        type="text"
+        placeholder="Type your question here..."
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        style={{ marginTop: "1rem", fontSize: "1rem" }}
+      />
     </div>
   );
 }

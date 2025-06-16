@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { Bar, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -19,6 +19,7 @@ export default function SmartDataAnalyzer({ onDataReady }) {
   const [selectedColumn, setSelectedColumn] = useState("");
   const [chartData, setChartData] = useState(null);
   const [isNumeric, setIsNumeric] = useState(false);
+  const [chartHeight, setChartHeight] = useState(400);
   const chartRef = useRef();
 
   const handleFileUpload = (e) => {
@@ -105,9 +106,22 @@ export default function SmartDataAnalyzer({ onDataReady }) {
           </div>
 
           {chartData && (
-            <div className="chart-wrapper">
+            <div className="chart-wrapper" style={{ height: chartHeight + "px" }}>
               <h3>📈 عرض {isNumeric ? "عمودي" : "دائري"} لـ {selectedColumn}</h3>
               <button className="btn" onClick={exportChart}>📥 حفظ الرسم</button>
+
+              <div style={{ margin: "1rem 0" }}>
+                <label>🔧 ارتفاع الرسم: {chartHeight}px</label>
+                <input
+                  type="range"
+                  min="200"
+                  max="1000"
+                  value={chartHeight}
+                  onChange={(e) => setChartHeight(e.target.value)}
+                  style={{ width: "100%" }}
+                />
+              </div>
+
               {isNumeric ? (
                 <Bar
                   ref={chartRef}
@@ -119,7 +133,13 @@ export default function SmartDataAnalyzer({ onDataReady }) {
                       backgroundColor: "#3b82f6",
                     }],
                   }}
-                  options={{ responsive: true, maintainAspectRatio: false }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { display: true },
+                    },
+                  }}
                 />
               ) : (
                 <Pie
@@ -136,7 +156,13 @@ export default function SmartDataAnalyzer({ onDataReady }) {
                       ],
                     }],
                   }}
-                  options={{ responsive: true, maintainAspectRatio: false }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { display: true },
+                    },
+                  }}
                 />
               )}
             </div>
