@@ -1,6 +1,4 @@
-import React, { useState, useRef } from "react";
-import * as XLSX from "xlsx";
-import Papa from "papaparse";
+import React, { useState, useEffect, useRef } from "react";
 import { Bar, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -16,9 +14,10 @@ ChartJS.register(BarElement, ArcElement, CategoryScale, LinearScale, Tooltip, Le
 
 export default function SmartDataAnalyzer({ onDataReady }) {
   const [fileName, setFileName] = useState("");
+  const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
-  const [chartData, setChartData] = useState(null);
   const [selectedColumn, setSelectedColumn] = useState("");
+  const [chartData, setChartData] = useState(null);
   const [isNumeric, setIsNumeric] = useState(false);
   const chartRef = useRef();
 
@@ -30,44 +29,44 @@ export default function SmartDataAnalyzer({ onDataReady }) {
     const reader = new FileReader();
     const ext = file.name.split(".").pop().toLowerCase();
 
-    reader.onload = (evt) => {
-      const content = evt.target.result;
+    reader.onload = async (evt) => {
+      let rows = [];
+      let fields = [];
+
       if (ext === "csv") {
-        const parsed = Papa.parse(content, {
+        const Papa = await import("papaparse");
+        const parsed = Papa.parse(evt.target.result, {
           header: true,
           skipEmptyLines: true,
         });
-        processParsedData(parsed.data);
+        rows = parsed.data;
+        fields = parsed.meta.fields;
       } else if (ext === "xlsx") {
-        const workbook = XLSX.read(content, { type: "binary" });
+        const XLSX = await import("xlsx");
+        const workbook = XLSX.read(evt.target.result, { type: "binary" });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-        processParsedData(jsonData);
+        rows = XLSX.utils.sheet_to_json(firstSheet);
+        fields = Object.keys(rows[0] || {});
       }
+
+      setData(rows);
+      setColumns(fields);
+      onDataReady(rows);
     };
 
-    if (ext === "csv") {
-      reader.readAsText(file);
-    } else if (ext === "xlsx") {
-      reader.readAsBinaryString(file);
-    }
-  };
-
-  const processParsedData = (rows) => {
-    const fields = Object.keys(rows[0]);
-    setColumns(fields);
-    onDataReady(rows);
+    if (ext === "csv") reader.readAsText(file);
+    else if (ext === "xlsx") reader.readAsBinaryString(file);
   };
 
   const handleColumnSelect = (col) => {
     setSelectedColumn(col);
-    const values = JSON.parse(localStorage.getItem("__last_data"))?.map((row) => row[col]).filter(Boolean);
+    const values = data.map((row) => row[col]).filter((v) => v !== undefined && v !== null);
     const numeric = values.every((v) => !isNaN(v));
     setIsNumeric(numeric);
 
     const freqMap = {};
     values.forEach((v) => {
-      const key = numeric ? Number(v).toFixed(0) : v;
+      const key = numeric ? Number(v).toFixed(0) : String(v);
       freqMap[key] = (freqMap[key] || 0) + 1;
     });
 
@@ -84,54 +83,65 @@ export default function SmartDataAnalyzer({ onDataReady }) {
   };
 
   return (
-    <div className="form-section">
-      <h2>📂 ارفع ملف بيانات (Excel أو CSV)</h2>
-      <input type="file" accept=".csv,.xlsx" onChange={handleFileUpload} />
-      {fileName && <p>📄 تم تحميل: {fileName}</p>}
+    <div className="form-section" dir="rtl">
+      <h2>📁 ارفع ملف بيانات (CSV أو Excel)</h2>
+      <input type="file" accept=".csv, .xlsx" onChange={handleFileUpload} />
+      {fileName && <p className="mt-2">📄 تم تحميل: {fileName}</p>}
 
       {columns.length > 0 && (
         <>
-          <label htmlFor="column-select">🎯 اختر عمودًا لعرض الرسم البياني:</label>
-          <select id="column-select" value={selectedColumn} onChange={(e) => handleColumnSelect(e.target.value)}>
-            <option value="">-- اختر عمود --</option>
-            {columns.map((col) => (
-              <option key={col} value={col}>{col}</option>
-            ))}
-          </select>
-        </>
-      )}
+          <div className="mt-6">
+            <label htmlFor="column-select">📊 اختر عمودًا لعرض الرسم البياني:</label>
+            <select
+              id="column-select"
+              value={selectedColumn}
+              onChange={(e) => handleColumnSelect(e.target.value)}
+            >
+              <option value="">-- اختر عمود --</option>
+              {columns.map((col) => (
+                <option key={col} value={col}>{col}</option>
+              ))}
+            </select>
+          </div>
 
-      {chartData && (
-        <div className="chart-wrapper">
-          <h3>📊 عرض {isNumeric ? "عمودي" : "دائري"} لـ {selectedColumn}</h3>
-          <button className="btn" onClick={exportChart}>📥 حفظ الرسم</button>
-          {isNumeric ? (
-            <Bar
-              ref={chartRef}
-              data={{
-                labels: Object.keys(chartData),
-                datasets: [{
-                  label: selectedColumn,
-                  data: Object.values(chartData),
-                  backgroundColor: "#3b82f6",
-                }],
-              }}
-              options={{ responsive: true, maintainAspectRatio: false }}
-            />
-          ) : (
-            <Pie
-              ref={chartRef}
-              data={{
-                labels: Object.keys(chartData),
-                datasets: [{
-                  label: selectedColumn,
-                  data: Object.values(chartData),
-                }],
-              }}
-              options={{ responsive: true, maintainAspectRatio: false }}
-            />
+          {chartData && (
+            <div className="chart-wrapper">
+              <h3>📈 عرض {isNumeric ? "عمودي" : "دائري"} لـ {selectedColumn}</h3>
+              <button className="btn" onClick={exportChart}>📥 حفظ الرسم</button>
+              {isNumeric ? (
+                <Bar
+                  ref={chartRef}
+                  data={{
+                    labels: Object.keys(chartData),
+                    datasets: [{
+                      label: selectedColumn,
+                      data: Object.values(chartData),
+                      backgroundColor: "#3b82f6",
+                    }],
+                  }}
+                  options={{ responsive: true, maintainAspectRatio: false }}
+                />
+              ) : (
+                <Pie
+                  ref={chartRef}
+                  data={{
+                    labels: Object.keys(chartData),
+                    datasets: [{
+                      label: selectedColumn,
+                      data: Object.values(chartData),
+                      backgroundColor: [
+                        "#10b981", "#3b82f6", "#f59e0b",
+                        "#ef4444", "#6366f1", "#22c55e",
+                        "#e11d48", "#8b5cf6", "#14b8a6"
+                      ],
+                    }],
+                  }}
+                  options={{ responsive: true, maintainAspectRatio: false }}
+                />
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );
