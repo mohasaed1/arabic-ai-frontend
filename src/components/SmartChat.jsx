@@ -15,7 +15,7 @@ export default function SmartChat({ fileData }) {
     setLoading(true);
 
     try {
-      const res = await fetch("https://arabic-ai-app.up.railway.app/chat", {
+      const res = await fetch("https://arabic-ai-app-production.up.railway.app/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
