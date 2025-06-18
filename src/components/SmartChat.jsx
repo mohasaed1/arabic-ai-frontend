@@ -1,14 +1,22 @@
 // SmartChat.jsx
-import React, { useState, useEffect } from "react";
-import { LoaderCircle, Trash2 } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { LoaderCircle, Trash2, Mic } from "lucide-react";
 import Markdown from "react-markdown";
 
 export default function SmartChat({ fileData, suggestChart }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [typingContent, setTypingContent] = useState("");
+  const chatBottomRef = useRef(null);
 
   const isArabic = (text) => /[؀-ۿ]/.test(text);
+
+  useEffect(() => {
+    if (chatBottomRef.current) {
+      chatBottomRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, typingContent]);
 
   const handleSubmit = async () => {
     if (!input.trim()) return;
@@ -16,6 +24,7 @@ export default function SmartChat({ fileData, suggestChart }) {
     setMessages(newMessages);
     setInput("");
     setLoading(true);
+    setTypingContent("");
 
     try {
       const res = await fetch("https://arabic-ai-app-production.up.railway.app/chat", {
@@ -26,18 +35,29 @@ export default function SmartChat({ fileData, suggestChart }) {
       const result = await res.json();
       const reply = result?.reply || "❌ لا توجد إجابة.";
 
-      // Auto-suggest a column from the AI reply (example: if it mentions "SalesMan")
-      const match = reply.match(/(?:column|العمود)[:\s"']+(\w+)/i);
+      let i = 0;
+      const typeChar = () => {
+        setTypingContent(reply.slice(0, i + 1));
+        i++;
+        if (i < reply.length) {
+          setTimeout(typeChar, 20);
+        } else {
+          setMessages([...newMessages, { role: "assistant", content: reply }]);
+          setTypingContent("");
+        }
+      };
+      typeChar();
+
+      const match = reply.match(/(?:column|العمود|البياني)[:\s"']+(\w+)/i);
       if (match && suggestChart) {
         suggestChart(match[1]);
       }
-
-      setMessages([...newMessages, { role: "assistant", content: reply }]);
     } catch (err) {
       setMessages([
         ...newMessages,
         { role: "assistant", content: "❌ فشل الاتصال بالخادم." },
       ]);
+      setTypingContent("");
     } finally {
       setLoading(false);
     }
@@ -46,26 +66,51 @@ export default function SmartChat({ fileData, suggestChart }) {
   const handleClear = () => {
     setMessages([]);
     setInput("");
+    setTypingContent("");
+  };
+
+  const handleVoiceInput = () => {
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = "ar-EG";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+      setInput(event.results[0][0].transcript);
+    };
+    recognition.start();
   };
 
   return (
-    <div className="chat-box" dir="rtl">
-      <h3> اسأل عن بياناتك</h3>
+    <div className="chat-box">
+      <h3>{isArabic(input) ? "اسأل عن بياناتك" : "Ask about your data"}</h3>
       <div className="chat-history">
         {messages.map((msg, i) => (
           <div
             key={i}
             className={`chat-bubble ${msg.role}`}
+            dir={isArabic(msg.content) ? "rtl" : "ltr"}
+            style={{ alignSelf: msg.role === "user" ? "flex-end" : "flex-start" }}
           >
             <Markdown>{msg.content}</Markdown>
           </div>
         ))}
-        {loading && (
+        {typingContent && (
+          <div
+            className="chat-bubble assistant"
+            dir={isArabic(typingContent) ? "rtl" : "ltr"}
+            style={{ alignSelf: "flex-start", whiteSpace: "pre-wrap" }}
+          >
+            <Markdown>{typingContent}</Markdown>
+          </div>
+        ))}
+        {loading && !typingContent && (
           <div className="chat-bubble assistant">
             <LoaderCircle className="animate-spin" style={{ display: "inline", marginInlineEnd: 6 }} />
             {isArabic(input) ? "جاري التحليل..." : "Analyzing..."}
           </div>
         )}
+        <div ref={chatBottomRef} />
       </div>
 
       <div className="chat-input">
@@ -77,6 +122,7 @@ export default function SmartChat({ fileData, suggestChart }) {
         />
         <button className="btn" onClick={handleSubmit} disabled={loading}>📤 إرسال</button>
         <button className="btn clear-btn" onClick={handleClear}><Trash2 size={16} /> مسح</button>
+        <button className="btn" onClick={handleVoiceInput} title="🎤 إدخال صوتي"><Mic size={16} /></button>
       </div>
     </div>
   );
