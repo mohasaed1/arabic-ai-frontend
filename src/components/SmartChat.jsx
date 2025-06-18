@@ -103,7 +103,7 @@ export default function SmartChat({ fileData, suggestChart }) {
           >
             <Markdown>{typingContent}</Markdown>
           </div>
-        ))}
+        )}
         {loading && !typingContent && (
           <div className="chat-bubble assistant">
             <LoaderCircle className="animate-spin" style={{ display: "inline", marginInlineEnd: 6 }} />
