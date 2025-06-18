@@ -38,15 +38,19 @@ export default function App() {
         </nav>
       </header>
 
-      <main className="app-container" style={{ display: "flex", flexDirection: "column-reverse", gap: "2rem" }}>
-        <SmartDataAnalyzer
-          onDataReady={(rows) => setFileData(rows)}
-          onColumnSuggest={(selectFn) => setSuggestChart(() => selectFn)}
-        />
-        <SmartChat
-          fileData={fileData}
-          suggestChart={suggestChart}
-        />
+      <main className="app-container" style={{ display: "flex", flexDirection: "column-reverse", gap: "2rem", padding: "1rem", maxWidth: "1000px", margin: "0 auto" }}>
+        <div style={{ zIndex: 1 }}>
+          <SmartDataAnalyzer
+            onDataReady={(rows) => setFileData(rows)}
+            onColumnSuggest={(selectFn) => setSuggestChart(() => selectFn)}
+          />
+        </div>
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <SmartChat
+            fileData={fileData}
+            suggestChart={suggestChart}
+          />
+        </div>
       </main>
     </div>
   );
