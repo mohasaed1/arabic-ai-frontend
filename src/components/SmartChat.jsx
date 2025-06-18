@@ -70,6 +70,10 @@ export default function SmartChat({ fileData, suggestChart }) {
   };
 
   const handleVoiceInput = () => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      alert("متصفحك لا يدعم الإدخال الصوتي");
+      return;
+    }
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = "ar-EG";
     recognition.interimResults = false;
