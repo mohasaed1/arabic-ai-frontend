@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+// SmartDataAnalyzer.jsx
+import React, { useState, useRef, useEffect } from "react";
 import { Bar, Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -9,10 +10,12 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import Papa from "papaparse";
+import * as XLSX from "xlsx";
 
 ChartJS.register(BarElement, ArcElement, CategoryScale, LinearScale, Tooltip, Legend);
 
-export default function SmartDataAnalyzer({ onDataReady }) {
+export default function SmartDataAnalyzer({ onDataReady, onColumnSuggest }) {
   const [fileName, setFileName] = useState("");
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
@@ -30,12 +33,11 @@ export default function SmartDataAnalyzer({ onDataReady }) {
     const reader = new FileReader();
     const ext = file.name.split(".").pop().toLowerCase();
 
-    reader.onload = async (evt) => {
+    reader.onload = (evt) => {
       let rows = [];
       let fields = [];
 
       if (ext === "csv") {
-        const Papa = await import("papaparse");
         const parsed = Papa.parse(evt.target.result, {
           header: true,
           skipEmptyLines: true,
@@ -43,7 +45,6 @@ export default function SmartDataAnalyzer({ onDataReady }) {
         rows = parsed.data;
         fields = parsed.meta.fields;
       } else if (ext === "xlsx") {
-        const XLSX = await import("xlsx");
         const workbook = XLSX.read(evt.target.result, { type: "binary" });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         rows = XLSX.utils.sheet_to_json(firstSheet);
@@ -82,6 +83,12 @@ export default function SmartDataAnalyzer({ onDataReady }) {
     link.href = url;
     link.click();
   };
+
+  useEffect(() => {
+    if (onColumnSuggest && typeof onColumnSuggest === 'function') {
+      onColumnSuggest(handleColumnSelect);
+    }
+  }, [data]);
 
   return (
     <div className="form-section" dir="rtl">
