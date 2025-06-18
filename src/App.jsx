@@ -1,10 +1,11 @@
+// App.jsx
 import React, { useState } from "react";
 import SmartDataAnalyzer from "./components/SmartDataAnalyzer";
 import SmartChat from "./components/SmartChat";
-import "./theme.css";
 
 export default function App() {
   const [fileData, setFileData] = useState([]);
+  const [suggestChart, setSuggestChart] = useState(() => () => {});
 
   return (
     <div className="app-wrapper" dir="rtl">
@@ -37,31 +38,16 @@ export default function App() {
         </nav>
       </header>
 
-      <main
-        style={{
-          padding: "2rem",
-          maxWidth: "1100px",
-          margin: "0 auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: "2rem"
-        }}
-      >
-        <SmartDataAnalyzer onDataReady={setFileData} />
-        {fileData.length > 0 && <SmartChat fileData={fileData} />}
+      <main className="app-container">
+        <SmartDataAnalyzer
+          onDataReady={(rows) => setFileData(rows)}
+          onColumnSuggest={(selectFn) => setSuggestChart(() => selectFn)}
+        />
+        <SmartChat
+          fileData={fileData}
+          suggestChart={suggestChart}
+        />
       </main>
-
-      <footer
-        style={{
-          textAlign: "center",
-          fontSize: "0.75rem",
-          color: "var(--text-muted)",
-          marginTop: "4rem",
-          paddingBottom: "2rem"
-        }}
-      >
-        GateOfAI.com © 2025
-      </footer>
     </div>
   );
 }
