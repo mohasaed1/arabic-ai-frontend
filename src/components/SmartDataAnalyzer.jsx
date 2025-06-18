@@ -113,7 +113,7 @@ export default function SmartDataAnalyzer({ onDataReady, onColumnSuggest }) {
           </div>
 
           {chartData && (
-            <div className="chart-wrapper" style={{ height: chartHeight + "px" }}>
+            <div className="chart-wrapper smooth-chart" style={{ height: chartHeight + "px" }}>
               <h3>📈 عرض {isNumeric ? "عمودي" : "دائري"} لـ {selectedColumn}</h3>
               <button className="btn" onClick={exportChart}>📥 حفظ الرسم</button>
 
