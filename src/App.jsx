@@ -38,7 +38,7 @@ export default function App() {
         </nav>
       </header>
 
-      <main className="app-container">
+      <main className="app-container" style={{ display: "flex", flexDirection: "column-reverse", gap: "2rem" }}>
         <SmartDataAnalyzer
           onDataReady={(rows) => setFileData(rows)}
           onColumnSuggest={(selectFn) => setSuggestChart(() => selectFn)}
