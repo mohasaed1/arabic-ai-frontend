@@ -1,3 +1,10 @@
+/* @license
+Papa Parse
+v5.5.3
+https://github.com/mholt/PapaParse
+License: MIT
+*/
+
 /*!
  * @kurkle/color v0.3.4
  * https://github.com/kurkle/color#readme
@@ -6,11 +13,13 @@
  */
 
 /*!
- * Chart.js v4.4.9
+ * Chart.js v4.5.0
  * https://www.chartjs.org
  * (c) 2025 Chart.js Contributors
  * Released under the MIT License
  */
+
+/*! sheetjs (C) 2013-present SheetJS -- http://sheetjs.com */
 
 /**
  * @license React
