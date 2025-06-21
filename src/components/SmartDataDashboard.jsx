@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Papa from 'papaparse';
 import { Bar, Pie } from 'react-chartjs-2';
 import { generateInsights } from '../utils/generateInsights';
-import SmartChatWithData from './SmartChatWithData';
+import SmartChat from './SmartChat'; // ✅ use SmartChat.jsx
 
 const SmartDataDashboard = () => {
   const [data, setData] = useState([]);
@@ -22,7 +22,7 @@ const SmartDataDashboard = () => {
       skipEmptyLines: true,
       complete: function (results) {
         setProgress(70);
-        const parsedData = results.data.slice(0, 5); // only first 5 rows
+        const parsedData = results.data.slice(0, 5); // Preview only first 5 rows
         const headers = results.meta.fields;
         setData(parsedData);
         setHeaders(headers);
@@ -31,6 +31,12 @@ const SmartDataDashboard = () => {
         setProgress(100);
       }
     });
+  };
+
+  const suggestChart = (column) => {
+    if (headers.includes(column)) {
+      setSelectedColumn(column);
+    }
   };
 
   const renderChart = () => {
@@ -113,7 +119,7 @@ const SmartDataDashboard = () => {
             <p>{insights[language]}</p>
           </div>
 
-          <SmartChatWithData dataPreview={data} language={language} />
+          <SmartChat fileData={data} suggestChart={suggestChart} />
         </>
       )}
     </div>
