@@ -23,7 +23,7 @@ ChartJS.register(
   LinearScale,
   Tooltip,
   Legend
-  PointElement
+  PointElement,
   LineElement   
 );
 
