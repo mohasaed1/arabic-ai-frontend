@@ -3,6 +3,7 @@ import React from "react";
 import SmartDataDashboard from "./components/SmartDataDashboard";
 
 export default function App() {
+  console.log("🔥 New deploy @ " + new Date().toISOString());
   return (
     <div className="app-wrapper" dir="rtl">
       <header
