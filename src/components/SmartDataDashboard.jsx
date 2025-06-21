@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import { generateInsights } from '../utils/generateInsights';
-import SmartChat from './SmartChat'
+import SmartChat from './SmartChat';
 
 const SmartDataDashboard = () => {
   const [data, setData] = useState([]);
@@ -12,7 +12,7 @@ const SmartDataDashboard = () => {
   const [progress, setProgress] = useState(0);
   const [selectedColumn, setSelectedColumn] = useState('');
   const [insights, setInsights] = useState({ ar: '', en: '' });
-  const [language, setLanguage] = useState('ar'); // default to Arabic
+  const [language, setLanguage] = useState('ar');
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -21,7 +21,7 @@ const SmartDataDashboard = () => {
     const fileType = file.name.split('.').pop().toLowerCase();
     setProgress(10);
 
-    if (['csv'].includes(fileType)) {
+    if (fileType === 'csv') {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
@@ -35,17 +35,18 @@ const SmartDataDashboard = () => {
           setProgress(100);
         },
       });
-    } else if (['xlsx'].includes(fileType)) {
+    } else if (fileType === 'xlsx') {
       const reader = new FileReader();
       reader.onload = (evt) => {
         const workbook = XLSX.read(evt.target.result, { type: 'binary' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const parsedData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
         const headers = Object.keys(parsedData[0] || {});
-        setData(parsedData.slice(0, 5));
+        const preview = parsedData.slice(0, 5);
+        setData(preview);
         setHeaders(headers);
         setSelectedColumn(headers[0]);
-        setInsights(generateInsights(parsedData.slice(0, 5)));
+        setInsights(generateInsights(preview));
         setProgress(100);
       };
       reader.readAsBinaryString(file);
@@ -155,7 +156,7 @@ const SmartDataDashboard = () => {
             <p>{insights[language]}</p>
           </div>
 
-          <SmartChatWithData dataPreview={data} language={language} />
+          <SmartChat fileData={data} />
         </>
       )}
     </div>
