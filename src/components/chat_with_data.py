@@ -1,40 +1,35 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter
 from pydantic import BaseModel
 from typing import List, Dict
 import openai
 import os
 
-openai.api_key = os.getenv("OPENAI_API_KEY")  # Make sure to set this in your Railway env vars
+openai.api_key = os.getenv("OPENAI_API_KEY")  # Ensure it's set in Railway env
 
 router = APIRouter()
 
-class ChatRequest(BaseModel):
-    question: str
+class SmartChatRequest(BaseModel):
+    message: str
     data: List[Dict[str, str]]
-    language: str = "en"
 
-@router.post("/chat-with-data")
-async def chat_with_data(req: ChatRequest):
-    # Format data sample
+@router.post("/chat")
+async def chat_with_file(req: SmartChatRequest):
+    # Only use preview of first 5 rows
     preview = req.data[:5]
-    context = f"Here is a preview of the uploaded data (first 5 rows):\n{preview}\n"
+    context = f"Preview of the uploaded file (first 5 rows):\n{preview}\n"
 
-    # Compose prompt
-    if req.language == "ar":
-        prompt = f"الرجاء تحليل البيانات التالية والإجابة عن السؤال: {req.question}.\n{context}"
-    else:
-        prompt = f"Please analyze the following data and answer the question: {req.question}.\n{context}"
+    # Compose the prompt
+    prompt = f"{context}\nNow answer this question based on the data: {req.message}"
 
     try:
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a data analyst who can answer questions about tabular data."},
+                {"role": "system", "content": "You are a helpful data analyst who answers user questions based on tabular data."},
                 {"role": "user", "content": prompt}
             ]
         )
-        answer = response.choices[0].message.content
-        return {"answer": answer.strip()}
-
+        reply = response.choices[0].message.content.strip()
+        return {"reply": reply}
     except Exception as e:
-        return {"answer": f"Error: {str(e)}"}
+        return {"reply": f"❌ Error: {str(e)}"}
