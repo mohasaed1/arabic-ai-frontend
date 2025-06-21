@@ -1,12 +1,8 @@
 // App.jsx
-import React, { useState } from "react";
-import SmartDataAnalyzer from "./components/SmartDataAnalyzer";
-import SmartChat from "./components/SmartChat";
+import React from "react";
+import SmartDataDashboard from "./components/SmartDataDashboard";
 
 export default function App() {
-  const [fileData, setFileData] = useState([]);
-  const [suggestChart, setSuggestChart] = useState(() => () => {});
-
   return (
     <div className="app-wrapper" dir="rtl">
       <header
@@ -38,19 +34,8 @@ export default function App() {
         </nav>
       </header>
 
-      <main className="app-container" style={{ display: "flex", flexDirection: "column-reverse", gap: "2rem", padding: "1rem", maxWidth: "1000px", margin: "0 auto" }}>
-        <div style={{ zIndex: 1 }}>
-          <SmartDataAnalyzer
-            onDataReady={(rows) => setFileData(rows)}
-            onColumnSuggest={(selectFn) => setSuggestChart(() => selectFn)}
-          />
-        </div>
-        <div style={{ position: "relative", zIndex: 2 }}>
-          <SmartChat
-            fileData={fileData}
-            suggestChart={suggestChart}
-          />
-        </div>
+      <main className="app-container" style={{ padding: "1rem", maxWidth: "1000px", margin: "0 auto" }}>
+        <SmartDataDashboard />
       </main>
     </div>
   );
