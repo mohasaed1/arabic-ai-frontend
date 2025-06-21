@@ -1,5 +1,16 @@
+// src/utils/generateInsights.js
+
 export function generateInsights(rows, fields) {
   if (!rows || rows.length === 0) return "📭 لا توجد بيانات لتحليلها.";
+
+  // Auto-detect fields from the first row if not provided
+  if (!fields && rows.length > 0) {
+    fields = Object.keys(rows[0]);
+  }
+
+  if (!fields || fields.length === 0) {
+    return "⚠️ لم يتم العثور على أعمدة لتحليلها.";
+  }
 
   const stats = fields.map((field) => {
     const values = rows.map((r) => r[field]).filter(Boolean);
