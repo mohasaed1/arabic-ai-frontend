@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Papa from 'papaparse';
 import { Bar, Pie } from 'react-chartjs-2';
 import { generateInsights } from '../utils/generateInsights';
+import SmartChatWithData from './SmartChatWithData';
 
 const SmartDataDashboard = () => {
   const [data, setData] = useState([]);
@@ -111,6 +112,8 @@ const SmartDataDashboard = () => {
             <h4>{t[language].summary}</h4>
             <p>{insights[language]}</p>
           </div>
+
+          <SmartChatWithData dataPreview={data} language={language} />
         </>
       )}
     </div>
