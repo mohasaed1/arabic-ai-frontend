@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
-import { Bar, Pie } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import { generateInsights } from '../utils/generateInsights';
 import SmartChat from './SmartChat';
 
@@ -12,7 +12,7 @@ const SmartDataDashboard = () => {
   const [progress, setProgress] = useState(0);
   const [selectedColumn, setSelectedColumn] = useState('');
   const [insights, setInsights] = useState({ ar: '', en: '' });
-  const [language, setLanguage] = useState('ar');
+  const [language, setLanguage] = useState('ar'); // default to Arabic
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -21,12 +21,12 @@ const SmartDataDashboard = () => {
     const fileType = file.name.split('.').pop().toLowerCase();
     setProgress(10);
 
-    if (fileType === 'csv') {
+    if (['csv'].includes(fileType)) {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
         complete: function (results) {
-          const parsedData = results.data.slice(0, 5);
+          const parsedData = results.data.slice(0, 20);
           const headers = results.meta.fields;
           setData(parsedData);
           setHeaders(headers);
@@ -35,18 +35,17 @@ const SmartDataDashboard = () => {
           setProgress(100);
         },
       });
-    } else if (fileType === 'xlsx') {
+    } else if (['xlsx'].includes(fileType)) {
       const reader = new FileReader();
       reader.onload = (evt) => {
         const workbook = XLSX.read(evt.target.result, { type: 'binary' });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const parsedData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
         const headers = Object.keys(parsedData[0] || {});
-        const preview = parsedData.slice(0, 5);
-        setData(preview);
+        setData(parsedData.slice(0, 20));
         setHeaders(headers);
         setSelectedColumn(headers[0]);
-        setInsights(generateInsights(preview));
+        setInsights(generateInsights(parsedData.slice(0, 20)));
         setProgress(100);
       };
       reader.readAsBinaryString(file);
@@ -55,7 +54,7 @@ const SmartDataDashboard = () => {
         .then(({ data: { text } }) => {
           const lines = text.trim().split('\n').filter(Boolean);
           const headers = lines[0].split(/\s+/);
-          const parsedData = lines.slice(1, 6).map(line => {
+          const parsedData = lines.slice(1, 21).map(line => {
             const values = line.split(/\s+/);
             const row = {};
             headers.forEach((h, i) => row[h] = values[i] || '');
@@ -81,22 +80,21 @@ const SmartDataDashboard = () => {
     const values = data.map(row => row[selectedColumn]);
     const isNumeric = values.every(v => !isNaN(parseFloat(v)));
 
+    const grouped = values.reduce((acc, val) => {
+      acc[val] = (acc[val] || 0) + 1;
+      return acc;
+    }, {});
+
     const chartData = {
-      labels: isNumeric ? values : Object.keys(values.reduce((acc, val) => {
-        acc[val] = (acc[val] || 0) + 1;
-        return acc;
-      }, {})),
+      labels: Object.keys(grouped),
       datasets: [{
         label: selectedColumn,
-        data: isNumeric ? values.map(Number) : Object.values(values.reduce((acc, val) => {
-          acc[val] = (acc[val] || 0) + 1;
-          return acc;
-        }, {})),
+        data: Object.values(grouped),
         backgroundColor: 'rgba(100, 149, 237, 0.6)',
       }]
     };
 
-    return isNumeric ? <Bar data={chartData} /> : <Pie data={chartData} />;
+    return <div style={{ width: '100%', marginTop: 20 }}><Bar data={chartData} /></div>;
   };
 
   const t = {
@@ -108,7 +106,7 @@ const SmartDataDashboard = () => {
     },
     en: {
       title: '📊 Smart Data Dashboard',
-      upload: 'Choose a CSV, Excel, or Image file',
+      upload: 'Choose a CSV, Excel, or Image file (JPEG, PNG...)',
       chooseColumn: 'Select column:',
       summary: '🧠 Smart Summary'
     }
@@ -122,43 +120,33 @@ const SmartDataDashboard = () => {
       </div>
 
       <h2>{t[language].title}</h2>
-      <input type="file" accept=".csv,.xlsx,.jpg,.jpeg,.png,.tiff" onChange={handleFileUpload} />
+      <input
+        type="file"
+        accept=".csv,.xlsx,.jpg,.jpeg,.png,.tiff"
+        onChange={handleFileUpload}
+        title={t[language].upload}
+      />
       {progress > 0 && <progress value={progress} max="100" style={{ width: '100%' }} />}
 
-      {data.length > 0 && (
-        <>
-          <div className="preview-table">
-            <table>
-              <thead>
-                <tr>{headers.map(h => <th key={h}>{h}</th>)}</tr>
-              </thead>
-              <tbody>
-                {data.map((row, i) => (
-                  <tr key={i}>{headers.map(h => <td key={h}>{row[h]}</td>)}</tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="selector">
-            <label>{t[language].chooseColumn}</label>
-            <select value={selectedColumn} onChange={e => setSelectedColumn(e.target.value)}>
-              {headers.map(h => <option key={h} value={h}>{h}</option>)}
-            </select>
-          </div>
-
-          <div className="chart-area">
-            {renderChart()}
-          </div>
-
-          <div className="insight-box">
-            <h4>{t[language].summary}</h4>
-            <p>{insights[language]}</p>
-          </div>
-
-          <SmartChat fileData={data} />
-        </>
+      {headers.length > 0 && (
+        <div className="selector">
+          <label>{t[language].chooseColumn}</label>
+          <select value={selectedColumn} onChange={e => setSelectedColumn(e.target.value)}>
+            {headers.map(h => <option key={h} value={h}>{h}</option>)}
+          </select>
+        </div>
       )}
+
+      <div className="chart-area">
+        {renderChart()}
+      </div>
+
+      <div className="insight-box">
+        <h4>{t[language].summary}</h4>
+        <p>{insights[language]}</p>
+      </div>
+
+      <SmartChat fileData={data} language={language} />
     </div>
   );
 };
