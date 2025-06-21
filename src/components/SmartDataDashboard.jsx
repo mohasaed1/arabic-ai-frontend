@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
+import Tesseract from 'tesseract.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import { generateInsights } from '../utils/generateInsights';
-import SmartChat from './SmartChat'; // ✅ use SmartChat.jsx
+import SmartChatWithData from './SmartChatWithData';
 
 const SmartDataDashboard = () => {
   const [data, setData] = useState([]);
@@ -15,27 +17,61 @@ const SmartDataDashboard = () => {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    const fileType = file.name.split('.').pop().toLowerCase();
     setProgress(10);
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: function (results) {
-        setProgress(70);
-        const parsedData = results.data.slice(0, 5); // Preview only first 5 rows
-        const headers = results.meta.fields;
-        setData(parsedData);
+    if (['csv'].includes(fileType)) {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function (results) {
+          const parsedData = results.data.slice(0, 5);
+          const headers = results.meta.fields;
+          setData(parsedData);
+          setHeaders(headers);
+          setSelectedColumn(headers[0]);
+          setInsights(generateInsights(parsedData));
+          setProgress(100);
+        },
+      });
+    } else if (['xlsx'].includes(fileType)) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const workbook = XLSX.read(evt.target.result, { type: 'binary' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const parsedData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        const headers = Object.keys(parsedData[0] || {});
+        setData(parsedData.slice(0, 5));
         setHeaders(headers);
         setSelectedColumn(headers[0]);
-        setInsights(generateInsights(parsedData));
+        setInsights(generateInsights(parsedData.slice(0, 5)));
         setProgress(100);
-      }
-    });
-  };
-
-  const suggestChart = (column) => {
-    if (headers.includes(column)) {
-      setSelectedColumn(column);
+      };
+      reader.readAsBinaryString(file);
+    } else if (['jpg', 'jpeg', 'png', 'tiff'].includes(fileType)) {
+      Tesseract.recognize(file, 'eng+ara', { logger: m => console.log(m) })
+        .then(({ data: { text } }) => {
+          const lines = text.trim().split('\n').filter(Boolean);
+          const headers = lines[0].split(/\s+/);
+          const parsedData = lines.slice(1, 6).map(line => {
+            const values = line.split(/\s+/);
+            const row = {};
+            headers.forEach((h, i) => row[h] = values[i] || '');
+            return row;
+          });
+          setData(parsedData);
+          setHeaders(headers);
+          setSelectedColumn(headers[0]);
+          setInsights(generateInsights(parsedData));
+          setProgress(100);
+        })
+        .catch(err => {
+          console.error(err);
+          alert("❌ Failed to process image. Please upload a clearer image.");
+        });
+    } else {
+      alert("❌ Unsupported file type. Please upload CSV, XLSX, JPG, PNG, or TIFF.");
     }
   };
 
@@ -65,13 +101,13 @@ const SmartDataDashboard = () => {
   const t = {
     ar: {
       title: '📊 لوحة البيانات الذكية',
-      upload: 'اختر ملف CSV أو Excel',
+      upload: 'اختر ملف CSV أو Excel أو صورة (JPEG، PNG...)',
       chooseColumn: 'اختر عمود:',
       summary: '🧠 ملخص ذكي'
     },
     en: {
       title: '📊 Smart Data Dashboard',
-      upload: 'Choose a CSV or Excel file',
+      upload: 'Choose a CSV, Excel, or Image file',
       chooseColumn: 'Select column:',
       summary: '🧠 Smart Summary'
     }
@@ -85,7 +121,7 @@ const SmartDataDashboard = () => {
       </div>
 
       <h2>{t[language].title}</h2>
-      <input type="file" accept=".csv,.xlsx" onChange={handleFileUpload} />
+      <input type="file" accept=".csv,.xlsx,.jpg,.jpeg,.png,.tiff" onChange={handleFileUpload} />
       {progress > 0 && <progress value={progress} max="100" style={{ width: '100%' }} />}
 
       {data.length > 0 && (
@@ -119,7 +155,7 @@ const SmartDataDashboard = () => {
             <p>{insights[language]}</p>
           </div>
 
-          <SmartChat fileData={data} suggestChart={suggestChart} />
+          <SmartChatWithData dataPreview={data} language={language} />
         </>
       )}
     </div>
