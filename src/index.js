@@ -22,9 +22,9 @@ ChartJS.register(
   CategoryScale,
   LinearScale,
   Tooltip,
-  Legend
+  Legend,
   PointElement,
-  LineElement   
+  LineElement
 );
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
