@@ -12,6 +12,8 @@ import {
   LinearScale,
   Tooltip,
   Legend,
+  PointElement,
+  LineElement
 } from 'chart.js';
 
 ChartJS.register(
@@ -21,6 +23,8 @@ ChartJS.register(
   LinearScale,
   Tooltip,
   Legend
+  PointElement
+  LineElement   
 );
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
