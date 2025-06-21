@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
 import { Bar, Pie } from 'react-chartjs-2';
 import { generateInsights } from '../utils/generateInsights';
-import SmartChatWithData from './SmartChatWithData';
+import SmartChat from './SmartChat'
 
 const SmartDataDashboard = () => {
   const [data, setData] = useState([]);
