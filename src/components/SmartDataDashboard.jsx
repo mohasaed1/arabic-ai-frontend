@@ -1,122 +1,95 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
-import { Bar, Pie, Line } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2';
 import { generateInsights } from '../utils/generateInsights';
 import SmartChat from './SmartChat';
 
 const SmartDataDashboard = () => {
-  const [allData, setAllData] = useState([]);
+  const [data, setData] = useState([]);
   const [headers, setHeaders] = useState([]);
   const [progress, setProgress] = useState(0);
   const [selectedColumns, setSelectedColumns] = useState([]);
   const [insights, setInsights] = useState({ ar: '', en: '' });
   const [language, setLanguage] = useState('ar');
-  const [suggestedColumn, setSuggestedColumn] = useState('');
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
-    let combinedData = [];
+    const combinedData = [];
     setProgress(10);
 
-    const processFile = (file, index, done) => {
+    for (const file of files) {
       const fileType = file.name.split('.').pop().toLowerCase();
 
       if (['csv'].includes(fileType)) {
-        Papa.parse(file, {
-          header: true,
-          skipEmptyLines: true,
-          complete: (results) => {
-            combinedData = [...combinedData, ...results.data];
-            done();
-          },
+        await new Promise((resolve) => {
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+              combinedData.push(...results.data);
+              resolve();
+            },
+          });
         });
       } else if (['xlsx'].includes(fileType)) {
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-          const workbook = XLSX.read(evt.target.result, { type: 'binary' });
-          const sheet = workbook.Sheets[workbook.SheetNames[0]];
-          const parsedData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-          combinedData = [...combinedData, ...parsedData];
-          done();
-        };
-        reader.readAsBinaryString(file);
+        const content = await file.arrayBuffer();
+        const workbook = XLSX.read(content, { type: 'buffer' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const sheetData = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        combinedData.push(...sheetData);
       } else if (['jpg', 'jpeg', 'png', 'tiff'].includes(fileType)) {
-        Tesseract.recognize(file, 'eng+ara', { logger: m => console.log(m) })
-          .then(({ data: { text } }) => {
-            const lines = text.trim().split('\n').filter(Boolean);
-            const headers = lines[0].split(/\s+/);
-            const parsedData = lines.slice(1).map(line => {
-              const values = line.split(/\s+/);
-              const row = {};
-              headers.forEach((h, i) => row[h] = values[i] || '');
-              return row;
-            });
-            combinedData = [...combinedData, ...parsedData];
-            done();
-          })
-          .catch(err => {
-            console.error(err);
-            alert("❌ Failed to process image file.");
-            done();
-          });
-      } else {
-        alert("❌ Unsupported file: " + file.name);
-        done();
+        const { data: { text } } = await Tesseract.recognize(file, 'eng+ara');
+        const lines = text.trim().split('\n').filter(Boolean);
+        const imageHeaders = lines[0].split(/\s+/);
+        const parsedData = lines.slice(1).map(line => {
+          const row = {};
+          line.split(/\s+/).forEach((val, i) => row[imageHeaders[i]] = val);
+          return row;
+        });
+        combinedData.push(...parsedData);
       }
-    };
+    }
 
-    let count = 0;
-    const onFileProcessed = () => {
-      count++;
-      if (count === files.length) {
-        setAllData(combinedData);
-        const uniqueHeaders = [...new Set(combinedData.flatMap(obj => Object.keys(obj)))];
-        setHeaders(uniqueHeaders);
-        setSelectedColumns(uniqueHeaders.slice(0, 2));
-        setInsights(generateInsights(combinedData.slice(0, 5)));
-        setProgress(100);
-      }
-    };
-
-    files.forEach(file => processFile(file, 0, onFileProcessed));
+    const validData = combinedData.slice(0, 50);
+    const cols = Object.keys(validData[0] || {});
+    setData(validData);
+    setHeaders(cols);
+    setSelectedColumns(cols.slice(0, 2));
+    setInsights(generateInsights(validData));
+    setProgress(100);
   };
 
   const renderChart = () => {
-    if (!selectedColumns.length) return null;
-    const chartData = {
-      labels: allData.map((_, i) => `Row ${i + 1}`),
-      datasets: selectedColumns.map((col, index) => {
-        const isNumeric = allData.every(row => !isNaN(parseFloat(row[col])));
-        return {
-          label: col,
-          data: allData.map(row => parseFloat(row[col]) || 0),
-          backgroundColor: `rgba(100, ${100 + index * 50}, 237, 0.5)`
-        };
-      })
-    };
-    return <Line data={chartData} />;
-  };
+    if (selectedColumns.length === 0) return null;
+    const labels = data.map((_, i) => `Row ${i + 1}`);
+    const datasets = selectedColumns.map((col, index) => {
+      return {
+        label: col,
+        data: data.map(row => parseFloat(row[col]) || 0),
+        backgroundColor: `rgba(${(index * 80) % 255}, ${(index * 120) % 255}, 200, 0.5)`,
+      };
+    });
 
-  const handleAIChartSuggestion = (col) => {
-    if (col && headers.includes(col)) {
-      setSelectedColumns([col]);
-      setSuggestedColumn(col);
-    }
+    return (
+      <div className="chart-container">
+        <Bar data={{ labels, datasets }} options={{ responsive: true, plugins: { legend: { position: 'top' } } }} />
+      </div>
+    );
   };
 
   const t = {
     ar: {
-      title: '🧠 منصة تحليل البيانات الذكية',
-      upload: 'اختر ملفات CSV أو Excel أو صور (JPEG, PNG...)',
-      chooseColumn: 'اختر أعمدة:',
+      title: '📊 منصة تحليل البيانات الذكية',
+      upload: 'اختر ملفات CSV أو Excel أو صور (JPEG، PNG، TIFF)',
+      chooseColumns: 'اختر أعمدة التحليل:',
       summary: '🧠 ملخص ذكي'
     },
     en: {
-      title: '🧠 Smart Data Analysis Platform',
-      upload: 'Select CSV, Excel, or image files (JPEG, PNG...)',
-      chooseColumn: 'Select columns:',
+      title: '📊 Smart Data Analysis Platform',
+      upload: 'Choose CSV, Excel or Image files (JPEG, PNG, TIFF)',
+      chooseColumns: 'Select analysis columns:',
       summary: '🧠 Smart Summary'
     }
   };
@@ -131,22 +104,21 @@ const SmartDataDashboard = () => {
       <h2>{t[language].title}</h2>
       <input
         type="file"
-        multiple
         accept=".csv,.xlsx,.jpg,.jpeg,.png,.tiff"
+        multiple
         onChange={handleFileUpload}
         title={t[language].upload}
       />
       {progress > 0 && <progress value={progress} max="100" style={{ width: '100%' }} />}
 
-      {allData.length > 0 && (
+      {headers.length > 0 && (
         <>
           <div className="selector">
-            <label>{t[language].chooseColumn}</label>
-            <select
-              multiple
-              value={selectedColumns}
-              onChange={e => setSelectedColumns(Array.from(e.target.selectedOptions, option => option.value))}
-            >
+            <label>{t[language].chooseColumns}</label>
+            <select multiple value={selectedColumns} onChange={e => {
+              const options = Array.from(e.target.selectedOptions).map(o => o.value);
+              setSelectedColumns(options);
+            }}>
               {headers.map(h => <option key={h} value={h}>{h}</option>)}
             </select>
           </div>
@@ -160,11 +132,7 @@ const SmartDataDashboard = () => {
             <p>{insights[language]}</p>
           </div>
 
-          <SmartChat
-            fileData={allData}
-            suggestChart={handleAIChartSuggestion}
-            language={language}
-          />
+          <SmartChat fileData={data} onAiChartUpdate={setSelectedColumns} />
         </>
       )}
     </div>
