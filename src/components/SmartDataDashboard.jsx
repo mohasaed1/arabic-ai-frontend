@@ -121,9 +121,20 @@ const SmartDataDashboard = () => {
         <>
           <div className="selector">
             <label>{t[language].chooseColumns}</label>
-            <select multiple value={selectedColumns} onChange={e => setSelectedColumns(Array.from(e.target.selectedOptions, option => option.value))}>
-              {headers.map(h => <option key={h} value={h}>{h}</option>)}
-            </select>
+            <select
+  multiple
+  value={selectedColumns}
+  onChange={e =>
+    setSelectedColumns(Array.from(e.target.selectedOptions, (option) => option.value))
+  }
+  className="column-select"
+>
+  {headers.map((h) => (
+    <option key={h} value={h}>
+      {h}
+    </option>
+  ))}
+</select>
           </div>
 
           <div className="chart-area">
@@ -132,7 +143,15 @@ const SmartDataDashboard = () => {
 
           <div className="insight-box">
             <h4>{t[language].summary}</h4>
-            <p>{insights[language]}</p>
+            <div className="insight-box">
+  <h4>{t[language].summary}</h4>
+  {insights[language] ? (
+    insights[language].split('\n').map((line, i) => <p key={i}>{line}</p>)
+  ) : (
+    <p>🚫 لا يوجد ملخص متاح</p>
+  )}
+</div>
+
           </div>
 
           <SmartChat fileData={allData} />
