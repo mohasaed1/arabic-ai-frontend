@@ -1,15 +1,16 @@
+// SmartChat.jsx (with hook to chart update based on group by and multi-column logic)
 import React, { useState, useEffect, useRef } from "react";
 import { LoaderCircle, Trash2, Mic } from "lucide-react";
 import Markdown from "react-markdown";
 
-export default function SmartChat({ fileData, setSelectedColumns, setChartType }) {
+export default function SmartChat({ fileData, setSelectedColumns, setChartType, setGroupBy }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [typingContent, setTypingContent] = useState("");
   const chatBottomRef = useRef(null);
 
-  const isArabic = (text) => /[؀-ۿ]/.test(text);
+  const isArabic = (text) => /[\u0600-\u06FF]/.test(text);
 
   useEffect(() => {
     if (chatBottomRef.current) {
@@ -17,14 +18,16 @@ export default function SmartChat({ fileData, setSelectedColumns, setChartType }
     }
   }, [messages, typingContent]);
 
-  const handleAIChartSuggestion = (reply) => {
-    const colMatch = reply.match(/(?:column|العمود|البياني)[:\s"']+(\w+)/i);
-    const typeMatch = reply.match(/(?:type|نوع|الرسم)[:\s"']+(bar|line|pie)/i);
-    if (colMatch && setSelectedColumns) {
-      setSelectedColumns([[colMatch[1]]]);
-    }
-    if (typeMatch && setChartType) {
-      setChartType(typeMatch[1]);
+  const extractChartInstructions = (reply) => {
+    const columns = [...reply.matchAll(/\b(?:column|العمود|الرسم)[:\s"']+(\w+)/gi)].map(m => m[1]);
+    const chartTypeMatch = reply.match(/(?:type|نوع)[:\s"']+(bar|line|pie)/i);
+    const groupByMatch = reply.match(/group\s+by\s+([\w,\s]+)/i);
+
+    if (columns.length && setSelectedColumns) setSelectedColumns([columns]);
+    if (chartTypeMatch && setChartType) setChartType(chartTypeMatch[1]);
+    if (groupByMatch && setGroupBy) {
+      const keys = groupByMatch[1].split(',').map(x => x.trim());
+      setGroupBy(keys);
     }
   };
 
@@ -40,10 +43,10 @@ export default function SmartChat({ fileData, setSelectedColumns, setChartType }
       const res = await fetch("https://arabic-ai-app-production.up.railway.app/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input, data: fileData, lang: isArabic(input) ? 'ar' : 'en' })
+        body: JSON.stringify({ message: input, data: fileData, lang: isArabic(input) ? 'ar' : 'en' }),
       });
       const result = await res.json();
-      const reply = result?.reply || (isArabic(input) ? "❌ لا توجد إجابة." : "❌ No response.");
+      const reply = result?.reply || "❌ لا توجد إجابة.";
 
       let i = 0;
       const typeChar = () => {
@@ -54,15 +57,12 @@ export default function SmartChat({ fileData, setSelectedColumns, setChartType }
         } else {
           setMessages([...newMessages, { role: "assistant", content: reply }]);
           setTypingContent("");
-          handleAIChartSuggestion(reply);
+          extractChartInstructions(reply);
         }
       };
       typeChar();
     } catch (err) {
-      setMessages([
-        ...newMessages,
-        { role: "assistant", content: isArabic(input) ? "❌ فشل الاتصال بالخادم." : "❌ Server connection failed." }
-      ]);
+      setMessages([...newMessages, { role: "assistant", content: "❌ فشل الاتصال بالخادم." }]);
       setTypingContent("");
     } finally {
       setLoading(false);
@@ -80,7 +80,6 @@ export default function SmartChat({ fileData, setSelectedColumns, setChartType }
     recognition.lang = "ar-EG";
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-
     recognition.onresult = (event) => {
       setInput(event.results[0][0].transcript);
     };
@@ -119,7 +118,6 @@ export default function SmartChat({ fileData, setSelectedColumns, setChartType }
         )}
         <div ref={chatBottomRef} />
       </div>
-
       <div className="chat-input">
         <input
           type="text"
