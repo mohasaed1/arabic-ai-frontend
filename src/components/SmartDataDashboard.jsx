@@ -154,8 +154,6 @@ const SmartDataDashboard = () => {
           </div>
 
           <div className="insight-box">
-            <h4>{t[language].summary}</h4>
-            <div className="insight-box">
   <h4>{t[language].summary}</h4>
   {insights[language] ? (
     insights[language].split('\n').map((line, i) => <p key={i}>{line}</p>)
@@ -163,7 +161,6 @@ const SmartDataDashboard = () => {
     <p>🚫 لا يوجد ملخص متاح</p>
   )}
 </div>
-
           </div>
 
           <SmartChat fileData={allData} />
