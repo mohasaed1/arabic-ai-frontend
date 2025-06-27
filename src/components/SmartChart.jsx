@@ -1,145 +1,108 @@
-// src/components/SmartChart.jsx
+// SmartChart.jsx
 import React from 'react';
-import { Line } from 'react-chartjs-2';
+import { Bar, Line, Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  PointElement,
+  BarElement,
   LineElement,
+  PointElement,
+  Title,
   Tooltip,
   Legend,
+  ArcElement,
 } from 'chart.js';
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
-  PointElement,
+  BarElement,
   LineElement,
+  PointElement,
+  Title,
   Tooltip,
-  Legend
+  Legend,
+  ArcElement
 );
 
-const SmartChart = ({ allData, selectedColumns, chartType = 'auto' }) => {
-  if (!selectedColumns.length || !allData.length) return null;
+const colorPalette = ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
 
-  const isNumeric = (col, rows) =>
-    rows.slice(0, 10).every((row) => !isNaN(parseFloat(row[col])));
+const SmartChart = ({ allData, selectedColumns, chartType }) => {
+  if (!selectedColumns.length || selectedColumns.every(cols => cols.length === 0)) return null;
 
-  const colorPalette = ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+  const flatCols = [...new Set(selectedColumns.flat())];
+  const isSingleFile = selectedColumns.length === 1;
 
-  // Group rows by file source
-  const fileGroups = {};
-  allData.forEach((row) => {
-    const file = row.__source || 'Unknown';
-    if (!fileGroups[file]) fileGroups[file] = [];
-    fileGroups[file].push(row);
-  });
+  const isNumericColumn = (col, sample = 5) => {
+    const nums = allData.map(row => parseFloat(row[col])).filter(val => !isNaN(val));
+    return nums.length >= sample;
+  };
 
-  // Flatten selectedColumns: [["Units"], ["Units"]] => ["Units", "Units"]
-  const flatCols = selectedColumns.flat();
-  const uniqueCols = [...new Set(flatCols)];
+  const autoChartType = (col) => (isNumericColumn(col) ? 'line' : 'bar');
 
-  const sharedCols = uniqueCols.filter(
-    (col) =>
-      Object.values(fileGroups).filter((rows) =>
-        rows.length && rows[0][col] !== undefined && isNumeric(col, rows)
-      ).length > 1
-  );
+  const commonLabels = allData.map((_, i) => i + 1);
 
-  const overlayCharts = sharedCols.map((col, idx) => {
-    const datasets = Object.entries(fileGroups)
-      .filter(([_, rows]) => rows[0][col] !== undefined)
-      .map(([file, rows], i) => ({
-        label: `${file} - ${col}`,
-        data: rows.map((row) => parseFloat(row[col]) || 0),
-        borderColor: colorPalette[i % colorPalette.length],
-        backgroundColor: colorPalette[i % colorPalette.length] + '33',
-        borderWidth: 2,
-        tension: 0.4,
-        fill: true,
-      }));
+  const buildDataset = (col, fileName = '') => {
+    return {
+      label: `${col}${fileName ? ' - ' + fileName : ''}`,
+      data: allData.map(row => parseFloat(row[col]) || 0),
+      backgroundColor: colorPalette[Math.floor(Math.random() * colorPalette.length)] + '88',
+      borderColor: colorPalette[Math.floor(Math.random() * colorPalette.length)],
+      borderWidth: 2,
+      tension: 0.4,
+      fill: false,
+    };
+  };
 
-    return (
-      <div className="chart-instance" key={`overlay-${col}`}>
-        <h4>📊 {col} (Comparison)</h4>
-        <Line
-          data={{
-            labels: datasets[0].data.map((_, i) => i + 1),
-            datasets,
-          }}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { position: 'top' },
-              tooltip: { mode: 'index', intersect: false },
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                grid: { color: '#eee' },
-              },
-              x: {
-                grid: { color: '#f5f5f5' },
-              },
-            },
-          }}
-        />
-      </div>
-    );
-  });
-
-  const sideBySideCharts = selectedColumns.map((cols, idx) => {
-    const fileName = Object.keys(fileGroups)[idx];
-    const rows = fileGroups[fileName];
-    return cols
-      .filter((col) => isNumeric(col, rows))
-      .filter((col) => !sharedCols.includes(col))
-      .map((col, i) => {
-        const values = rows.map((r) => parseFloat(r[col]) || 0);
-        return (
-          <div className="chart-instance" key={`side-${fileName}-${col}`}>
-            <h4>📁 {fileName} - {col}</h4>
-            <Line
-              data={{
-                labels: values.map((_, i) => i + 1),
-                datasets: [
-                  {
-                    label: col,
-                    data: values,
-                    borderColor: colorPalette[i % colorPalette.length],
-                    backgroundColor: colorPalette[i % colorPalette.length] + '33',
-                    tension: 0.4,
-                    borderWidth: 2,
-                    fill: true,
-                  },
-                ],
-              }}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { position: 'top' },
-                  tooltip: { mode: 'index', intersect: false },
-                },
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    grid: { color: '#eee' },
-                  },
-                  x: {
-                    grid: { color: '#f5f5f5' },
-                  },
-                },
-              }}
-            />
-          </div>
-        );
-      });
+  const groupedData = selectedColumns.map((cols, fileIdx) => {
+    return cols.map(col => buildDataset(col));
   }).flat();
 
-  return <div className="multi-chart-container">{[...overlayCharts, ...sideBySideCharts]}</div>;
+  const chartProps = {
+    data: {
+      labels: commonLabels,
+      datasets: groupedData,
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { mode: 'index', intersect: false },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: '#eee' },
+        },
+        x: {
+          grid: { color: '#f5f5f5' },
+          ticks: {
+            callback: function (val, index) {
+              return index % 5 === 0 ? val : '';
+            },
+          },
+        },
+      },
+    },
+  };
+
+  const finalChartType = chartType !== 'auto' ? chartType : (isNumericColumn(flatCols[0]) ? 'line' : 'bar');
+
+  return (
+    <div style={{ width: '100%', height: '500px' }}>
+      {finalChartType === 'bar' && <Bar {...chartProps} />}
+      {finalChartType === 'line' && <Line {...chartProps} />}
+      {finalChartType === 'pie' && <Pie {...chartProps} data={{
+        labels: groupedData.map(ds => ds.label),
+        datasets: [{
+          data: groupedData.map(ds => ds.data.reduce((sum, val) => sum + val, 0)),
+          backgroundColor: colorPalette,
+        }]
+      }} />}
+    </div>
+  );
 };
 
 export default SmartChart;
