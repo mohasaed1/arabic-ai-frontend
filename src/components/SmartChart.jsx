@@ -1,58 +1,100 @@
-// src/components/SmartChart.jsx
 import React from 'react';
 import { Bar, Pie, Line } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Tooltip, Legend } from 'chart.js';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend
+);
 
-const SmartChart = ({ allData, selectedColumns, chartType }) => {
-  if (!allData || selectedColumns.flat().length === 0) return null;
-
-  const allSelected = selectedColumns.flat();
-
-  const labels = allData.map((_, i) => `Row ${i + 1}`);
-  const colorPalette = ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
-
-  const datasets = allSelected.map((col, idx) => ({
-    label: col,
-    data: allData.map((row) => parseFloat(row[col]) || 0),
-    backgroundColor: colorPalette[idx % colorPalette.length] + 'AA',
-    borderColor: colorPalette[idx % colorPalette.length],
-    borderWidth: 2,
-    tension: 0.4,
-    fill: true,
-    pointRadius: 3,
-  }));
-
-  const chartData = {
-    labels,
-    datasets,
+export default function SmartChart({ allData, selectedColumns, chartType }) {
+  const groupBySource = () => {
+    const grouped = {};
+    allData.forEach(row => {
+      const src = row.__source || 'unknown';
+      if (!grouped[src]) grouped[src] = [];
+      grouped[src].push(row);
+    });
+    return grouped;
   };
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'top' },
-      tooltip: { mode: 'index', intersect: false },
-    },
-    scales: {
-      y: { beginAtZero: true },
-      x: { ticks: { callback: (val, i) => i % 5 === 0 ? val : '' } },
-    },
+  const getChartType = (type, yCol) => {
+    if (type !== 'auto') return type;
+    if (!yCol) return 'bar';
+    return yCol.length === 1 ? 'pie' : 'bar';
   };
 
-  const renderChart = () => {
-    if (chartType === 'bar') return <Bar data={chartData} options={options} />;
-    if (chartType === 'pie') return <Pie data={{ labels: allSelected, datasets: [datasets[0]] }} />;
-    return <Line data={chartData} options={options} />;
+  const exportAsImage = async () => {
+    const chartEl = document.querySelector('.chart-section');
+    if (!chartEl) return;
+    const canvas = await html2canvas(chartEl);
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF();
+    pdf.addImage(imgData, 'PNG', 10, 10, 180, 160);
+    pdf.save('chart.pdf');
   };
+
+  const renderChart = (data, file, idx) => {
+    const cols = selectedColumns[idx] || [];
+    if (cols.length === 0) return null;
+
+    const x = cols[0];
+    const ys = cols.slice(1);
+    const uniqueX = [...new Set(data.map(row => row[x]))];
+
+    const datasets = ys.map((y, i) => ({
+      label: y,
+      data: uniqueX.map(xVal => {
+        const matches = data.filter(row => row[x] === xVal);
+        const sum = matches.reduce((acc, r) => acc + (parseFloat(r[y]) || 0), 0);
+        return sum / matches.length;
+      }),
+      backgroundColor: `hsl(${i * 70}, 70%, 60%)`,
+      borderColor: `hsl(${i * 70}, 70%, 40%)`,
+      borderWidth: 1,
+      fill: true,
+      tension: 0.3
+    }));
+
+    const type = getChartType(chartType, ys);
+    const config = {
+      labels: uniqueX,
+      datasets: datasets.length ? datasets : [{
+        label: x,
+        data: uniqueX.map(v => data.filter(d => d[x] === v).length),
+        backgroundColor: `hsl(210, 70%, 70%)`
+      }]
+    };
+
+    return (
+      <div key={idx} style={{ marginBottom: 40, maxWidth: 1000 }}>
+        <h4>{file}</h4>
+        {type === 'pie' ? (
+          <Pie data={config} />
+        ) : type === 'line' ? (
+          <Line data={config} />
+        ) : (
+          <Bar data={config} />
+        )}
+      </div>
+    );
+  };
+
+  const grouped = groupBySource();
+  const keys = Object.keys(grouped);
 
   return (
-    <div style={{ width: '100%', height: '500px', marginBottom: '2rem' }}>
-      {renderChart()}
+    <div className="chart-section" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <button onClick={exportAsImage} className="btn">📥 Export PDF</button>
+      {keys.map((k, i) => renderChart(grouped[k], k, i))}
     </div>
   );
-};
-
-export default SmartChart;
+}
