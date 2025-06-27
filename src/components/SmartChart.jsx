@@ -1,106 +1,56 @@
-// SmartChart.jsx
+// src/components/SmartChart.jsx
 import React from 'react';
-import { Bar, Line, Pie } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-} from 'chart.js';
+import { Bar, Pie, Line } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Tooltip, Legend } from 'chart.js';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-);
-
-const colorPalette = ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, ArcElement, Tooltip, Legend);
 
 const SmartChart = ({ allData, selectedColumns, chartType }) => {
-  if (!selectedColumns.length || selectedColumns.every(cols => cols.length === 0)) return null;
+  if (!allData || selectedColumns.flat().length === 0) return null;
 
-  const flatCols = [...new Set(selectedColumns.flat())];
-  const isSingleFile = selectedColumns.length === 1;
+  const allSelected = selectedColumns.flat();
 
-  const isNumericColumn = (col, sample = 5) => {
-    const nums = allData.map(row => parseFloat(row[col])).filter(val => !isNaN(val));
-    return nums.length >= sample;
+  const labels = allData.map((_, i) => `Row ${i + 1}`);
+  const colorPalette = ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
+
+  const datasets = allSelected.map((col, idx) => ({
+    label: col,
+    data: allData.map((row) => parseFloat(row[col]) || 0),
+    backgroundColor: colorPalette[idx % colorPalette.length] + 'AA',
+    borderColor: colorPalette[idx % colorPalette.length],
+    borderWidth: 2,
+    tension: 0.4,
+    fill: true,
+    pointRadius: 3,
+  }));
+
+  const chartData = {
+    labels,
+    datasets,
   };
 
-  const autoChartType = (col) => (isNumericColumn(col) ? 'line' : 'bar');
-
-  const commonLabels = allData.map((_, i) => i + 1);
-
-  const buildDataset = (col, fileName = '') => {
-    return {
-      label: `${col}${fileName ? ' - ' + fileName : ''}`,
-      data: allData.map(row => parseFloat(row[col]) || 0),
-      backgroundColor: colorPalette[Math.floor(Math.random() * colorPalette.length)] + '88',
-      borderColor: colorPalette[Math.floor(Math.random() * colorPalette.length)],
-      borderWidth: 2,
-      tension: 0.4,
-      fill: false,
-    };
-  };
-
-  const groupedData = selectedColumns.map((cols, fileIdx) => {
-    return cols.map(col => buildDataset(col));
-  }).flat();
-
-  const chartProps = {
-    data: {
-      labels: commonLabels,
-      datasets: groupedData,
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top' },
+      tooltip: { mode: 'index', intersect: false },
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top' },
-        tooltip: { mode: 'index', intersect: false },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: '#eee' },
-        },
-        x: {
-          grid: { color: '#f5f5f5' },
-          ticks: {
-            callback: function (val, index) {
-              return index % 5 === 0 ? val : '';
-            },
-          },
-        },
-      },
+    scales: {
+      y: { beginAtZero: true },
+      x: { ticks: { callback: (val, i) => i % 5 === 0 ? val : '' } },
     },
   };
 
-  const finalChartType = chartType !== 'auto' ? chartType : (isNumericColumn(flatCols[0]) ? 'line' : 'bar');
+  const renderChart = () => {
+    if (chartType === 'bar') return <Bar data={chartData} options={options} />;
+    if (chartType === 'pie') return <Pie data={{ labels: allSelected, datasets: [datasets[0]] }} />;
+    return <Line data={chartData} options={options} />;
+  };
 
   return (
-    <div style={{ width: '100%', height: '500px' }}>
-      {finalChartType === 'bar' && <Bar {...chartProps} />}
-      {finalChartType === 'line' && <Line {...chartProps} />}
-      {finalChartType === 'pie' && <Pie {...chartProps} data={{
-        labels: groupedData.map(ds => ds.label),
-        datasets: [{
-          data: groupedData.map(ds => ds.data.reduce((sum, val) => sum + val, 0)),
-          backgroundColor: colorPalette,
-        }]
-      }} />}
+    <div style={{ width: '100%', height: '500px', marginBottom: '2rem' }}>
+      {renderChart()}
     </div>
   );
 };
