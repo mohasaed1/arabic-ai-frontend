@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { LoaderCircle, Trash2, Mic } from "lucide-react";
 import Markdown from "react-markdown";
 
-export default function SmartChat({ fileData, suggestChart }) {
+export default function SmartChat({ fileData, setSelectedColumns, setChartType }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,6 +17,17 @@ export default function SmartChat({ fileData, suggestChart }) {
       chatBottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, typingContent]);
+
+  const handleAIChartSuggestion = (reply) => {
+    const colMatch = reply.match(/(?:column|العمود|البياني)[:\s"']+(\w+)/i);
+    const typeMatch = reply.match(/(?:type|نوع|الرسم)[:\s"']+(bar|line|pie)/i);
+    if (colMatch && setSelectedColumns) {
+      setSelectedColumns([[colMatch[1]]]);
+    }
+    if (typeMatch && setChartType) {
+      setChartType(typeMatch[1]);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!input.trim()) return;
@@ -44,14 +55,10 @@ export default function SmartChat({ fileData, suggestChart }) {
         } else {
           setMessages([...newMessages, { role: "assistant", content: reply }]);
           setTypingContent("");
+          handleAIChartSuggestion(reply);
         }
       };
       typeChar();
-
-      const match = reply.match(/(?:column|العمود|البياني)[:\s"']+(\w+)/i);
-      if (match && suggestChart) {
-        suggestChart(match[1]);
-      }
     } catch (err) {
       setMessages([
         ...newMessages,
