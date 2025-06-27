@@ -1,6 +1,3 @@
-// Temporary change to force rebuild
-console.log("Force rebuild: June 27");
-
 // App.jsx
 import React from "react";
 import SmartDataDashboard from "./components/SmartDataDashboard";
