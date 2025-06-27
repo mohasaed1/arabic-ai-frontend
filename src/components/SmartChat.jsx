@@ -95,7 +95,7 @@ export default function SmartChat({ fileData, setSelectedColumns, setChartType }
         {messages.map((msg, i) => (
           <div
             key={i}
-            className={chat-bubble ${msg.role}}
+            className={`chat-bubble ${msg.role}`}
             dir={isArabic(msg.content) ? "rtl" : "ltr"}
             style={{ alignSelf: msg.role === "user" ? "flex-end" : "flex-start" }}
           >
