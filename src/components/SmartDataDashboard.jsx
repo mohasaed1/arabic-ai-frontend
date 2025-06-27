@@ -161,7 +161,7 @@ const SmartDataDashboard = () => {
     <p>🚫 لا يوجد ملخص متاح</p>
   )}
 </div>
-          </div>
+      
 
           <SmartChat fileData={allData} />
         </>
