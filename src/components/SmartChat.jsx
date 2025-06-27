@@ -41,7 +41,7 @@ export default function SmartChat({ fileData, setSelectedColumns, setChartType }
       const res = await fetch("https://arabic-ai-app-production.up.railway.app/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input, data: fileData }),
+        body: JSON.stringify({ message: input, data: fileData, lang: isArabic(input) ? 'ar' : 'en' }),
       });
       const result = await res.json();
       const reply = result?.reply || "❌ لا توجد إجابة.";
@@ -112,11 +112,13 @@ export default function SmartChat({ fileData, setSelectedColumns, setChartType }
           </div>
         )}
         {loading && !typingContent && (
-          <div className="chat-bubble assistant">
-            <LoaderCircle className="animate-spin" style={{ display: "inline", marginInlineEnd: 6 }} />
-            {isArabic(input) ? "جاري التحليل..." : "Analyzing..."}
-          </div>
-        )}
+  <div className="chat-bubble assistant" dir={isArabic(input) ? "rtl" : "ltr"}>
+    <span style={{ fontWeight: 'bold' }}>
+      {isArabic(input) ? "جارٍ التحليل" : "Analyzing"} <span className="dots">...</span>
+    </span>
+  </div>
+)}
+
         <div ref={chatBottomRef} />
       </div>
 
