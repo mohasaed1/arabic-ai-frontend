@@ -8,7 +8,7 @@ import SmartChat from './SmartChat';
 
 const SmartDataDashboard = () => {
   const [allData, setAllData] = useState([]);
-  const [headers, setHeaders] = useState([]);
+  const [fileHeaders, setFileHeaders] = useState([]);
   const [progress, setProgress] = useState(0);
   const [selectedColumns, setSelectedColumns] = useState([]);
   const [insights, setInsights] = useState({ ar: '', en: '' });
@@ -17,19 +17,23 @@ const SmartDataDashboard = () => {
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
     const allParsedData = [];
+    const headersPerFile = [];
     setProgress(10);
 
     files.forEach((file, idx) => {
       const fileType = file.name.split('.').pop().toLowerCase();
+
+      const tagSource = (data) =>
+        data.map((row) => ({ ...row, __source: file.name }));
 
       if (fileType === 'csv') {
         Papa.parse(file, {
           header: true,
           skipEmptyLines: true,
           complete: (results) => {
-            const parsed = results.data;
-            allParsedData.push(...parsed);
-            if (idx === files.length - 1) finalizeUpload(allParsedData);
+            const tagged = tagSource(results.data);
+            allParsedData.push(...tagged);
+            if (idx === files.length - 1) finalizeUpload(allParsedData, files);
           },
         });
       } else if (fileType === 'xlsx') {
@@ -38,8 +42,9 @@ const SmartDataDashboard = () => {
           const workbook = XLSX.read(evt.target.result, { type: 'binary' });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
           const parsed = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-          allParsedData.push(...parsed);
-          if (idx === files.length - 1) finalizeUpload(allParsedData);
+          const tagged = tagSource(parsed);
+          allParsedData.push(...tagged);
+          if (idx === files.length - 1) finalizeUpload(allParsedData, files);
         };
         reader.readAsBinaryString(file);
       } else if (['jpg', 'jpeg', 'png', 'tiff'].includes(fileType)) {
@@ -50,66 +55,74 @@ const SmartDataDashboard = () => {
             const parsed = lines.slice(1).map(line => {
               const vals = line.split(/\s+/);
               const row = {};
-              heads.forEach((h, i) => row[h] = vals[i] || '');
+              heads.forEach((h, i) => (row[h] = vals[i] || ''));
               return row;
             });
-            allParsedData.push(...parsed);
-            if (idx === files.length - 1) finalizeUpload(allParsedData);
+            const tagged = tagSource(parsed);
+            allParsedData.push(...tagged);
+            if (idx === files.length - 1) finalizeUpload(allParsedData, files);
           })
-          .catch(err => alert("❌ Failed to process image: " + err));
+          .catch((err) => alert("❌ Failed to process image: " + err));
       }
     });
   };
 
-  const finalizeUpload = (combinedData) => {
-    const heads = Object.keys(combinedData[0] || {});
+  const finalizeUpload = (combinedData, originalFiles) => {
+    const groupedHeaders = originalFiles.map((file) => {
+      const data = combinedData.filter((row) => row.__source === file.name);
+      return {
+        fileName: file.name,
+        headers: Object.keys(data[0] || {}).filter((key) => key !== '__source'),
+      };
+    });
+
     setAllData(combinedData);
-    setHeaders(heads);
-    setSelectedColumns(heads.slice(0, 2));
+    setFileHeaders(groupedHeaders);
+    setSelectedColumns(groupedHeaders.map(g => g.headers.slice(0, 1))); // default first column
     setInsights(generateInsights(combinedData));
     setProgress(100);
   };
 
   const renderChart = () => {
-  if (selectedColumns.length < 2) return null;
+    const allSelected = selectedColumns.flat();
+    if (allSelected.length < 1) return null;
 
-  const datasets = selectedColumns.map((col) => ({
-    label: col,
-    data: allData.map((row) => parseFloat(row[col]) || 0),
-    fill: false,
-    borderWidth: 2,
-  }));
+    const datasets = allSelected.map((col) => ({
+      label: col,
+      data: allData.map((row) => parseFloat(row[col]) || 0),
+      fill: false,
+      borderWidth: 2,
+    }));
 
-  return (
-    <div className="chart-container">
-      <Line
-        data={{
-          labels: allData.map((_, i) => i + 1),
-          datasets,
-        }}
-        options={{
-          responsive: true,
-          maintainAspectRatio: false,
-        }}
-      />
-    </div>
-  );
-};
-
+    return (
+      <div className="chart-container">
+        <Line
+          data={{
+            labels: allData.map((_, i) => i + 1),
+            datasets,
+          }}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+          }}
+        />
+      </div>
+    );
+  };
 
   const t = {
     ar: {
       title: '📊 لوحة تحليل البيانات الذكية',
       upload: 'اختر ملفات متعددة (CSV، Excel، صور)',
-      chooseColumns: 'اختر الأعمدة للمقارنة:',
-      summary: '🧠 ملخص ذكي'
+      chooseColumns: 'اختر الأعمدة لكل ملف:',
+      summary: '🧠 ملخص ذكي',
     },
     en: {
       title: '📊 Smart Data Analytics Dashboard',
       upload: 'Select multiple files (CSV, Excel, Images)',
-      chooseColumns: 'Select columns for comparison:',
-      summary: '🧠 Smart Summary'
-    }
+      chooseColumns: 'Choose columns per file:',
+      summary: '🧠 Smart Summary',
+    },
   };
 
   return (
@@ -129,39 +142,42 @@ const SmartDataDashboard = () => {
       />
       {progress > 0 && <progress value={progress} max="100" style={{ width: '100%' }} />}
 
-      {allData.length > 0 && (
+      {fileHeaders.length > 0 && (
         <>
-          <div className="selector">
-            <label>{t[language].chooseColumns}</label>
-            <select
-  multiple
-  value={selectedColumns}
-  onChange={e =>
-    setSelectedColumns(Array.from(e.target.selectedOptions, (option) => option.value))
-  }
-  className="column-select"
->
-  {headers.map((h) => (
-    <option key={h} value={h}>
-      {h}
-    </option>
-  ))}
-</select>
+          <label>{t[language].chooseColumns}</label>
+          <div className="column-grid">
+            {fileHeaders.map((fh, idx) => (
+              <div key={idx} className="file-selector">
+                <label>📁 {fh.fileName}</label>
+                <select
+                  multiple
+                  className="column-select"
+                  value={selectedColumns[idx] || []}
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.selectedOptions, opt => opt.value);
+                    const updated = [...selectedColumns];
+                    updated[idx] = selected;
+                    setSelectedColumns(updated);
+                  }}
+                >
+                  {fh.headers.map((h, i) => (
+                    <option key={i} value={h}>{h}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
           </div>
 
-          <div className="chart-area">
-            {renderChart()}
-          </div>
+          <div className="chart-area">{renderChart()}</div>
 
           <div className="insight-box">
-  <h4>{t[language].summary}</h4>
-  {insights[language] ? (
-    insights[language].split('\n').map((line, i) => <p key={i}>{line}</p>)
-  ) : (
-    <p>🚫 لا يوجد ملخص متاح</p>
-  )}
-</div>
-      
+            <h4>{t[language].summary}</h4>
+            {insights[language] ? (
+              insights[language].split('\n').map((line, i) => <p key={i}>{line}</p>)
+            ) : (
+              <p>🚫 لا يوجد ملخص متاح</p>
+            )}
+          </div>
 
           <SmartChat fileData={allData} />
         </>
