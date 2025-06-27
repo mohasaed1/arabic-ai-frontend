@@ -84,31 +84,57 @@ const SmartDataDashboard = () => {
   };
 
   const renderChart = () => {
-    const allSelected = selectedColumns.flat();
-    if (allSelected.length < 1) return null;
+  const allSelected = selectedColumns.flat();
+  if (allSelected.length < 1) return null;
 
-    const datasets = allSelected.map((col) => ({
-      label: col,
-      data: allData.map((row) => parseFloat(row[col]) || 0),
-      fill: false,
-      borderWidth: 2,
-    }));
+  const colorPalette = ['#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'];
 
-    return (
-      <div className="chart-container">
-        <Line
-          data={{
-            labels: allData.map((_, i) => i + 1),
-            datasets,
-          }}
-          options={{
-            responsive: true,
-            maintainAspectRatio: false,
-          }}
-        />
-      </div>
-    );
-  };
+  const datasets = allSelected.map((col, idx) => ({
+    label: col,
+    data: allData.map((row) => parseFloat(row[col]) || 0),
+    borderColor: colorPalette[idx % colorPalette.length],
+    backgroundColor: colorPalette[idx % colorPalette.length] + '33',
+    borderWidth: 2,
+    tension: 0.4,
+    fill: true,
+    pointRadius: 3,
+    pointHoverRadius: 6,
+  }));
+
+  return (
+    <div className="chart-container">
+      <Line
+        data={{
+          labels: allData.map((_, i) => i + 1),
+          datasets,
+        }}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: { mode: 'index', intersect: false },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: '#eee' },
+              ticks: { stepSize: 1 },
+            },
+            x: {
+              grid: { color: '#f5f5f5' },
+              ticks: {
+                callback: function (val, index) {
+                  return index % 5 === 0 ? val : '';
+                },
+              },
+            },
+          },
+        }}
+      />
+    </div>
+  );
+};
 
   const t = {
     ar: {
