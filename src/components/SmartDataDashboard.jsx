@@ -71,19 +71,31 @@ const SmartDataDashboard = () => {
   };
 
   const renderChart = () => {
-    if (selectedColumns.length < 2) return null;
-    const datasets = selectedColumns.map(col => {
-      return {
-        label: col,
-        data: allData.map(row => parseFloat(row[col]) || 0),
-        fill: false,
-      };
-    });
-    return <div style={{ width: '100%', minHeight: 400 }}><Line data={{
-      labels: allData.map((_, i) => i + 1),
-      datasets,
-    }} /></div>;
-  };
+  if (selectedColumns.length < 2) return null;
+
+  const datasets = selectedColumns.map((col) => ({
+    label: col,
+    data: allData.map((row) => parseFloat(row[col]) || 0),
+    fill: false,
+    borderWidth: 2,
+  }));
+
+  return (
+    <div className="chart-container">
+      <Line
+        data={{
+          labels: allData.map((_, i) => i + 1),
+          datasets,
+        }}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+        }}
+      />
+    </div>
+  );
+};
+
 
   const t = {
     ar: {
