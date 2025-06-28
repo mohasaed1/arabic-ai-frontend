@@ -1,60 +1,70 @@
-// SmartChat.jsx – updated for full AI utilization with visual tags
-import React, { useState } from 'react';
+// SmartChat.jsx (Restored animated typing + filtered AI summary)
+import React, { useState, useEffect, useRef } from 'react';
 
 const SmartChat = ({ allData, language }) => {
-  const [query, setQuery] = useState('');
-  const [response, setResponse] = useState('');
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState([]);
+  const bottomRef = useRef(null);
 
-  const askAI = async () => {
-    if (!query.trim()) return;
+  const scrollToBottom = () => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(scrollToBottom, [messages]);
+
+  const sendMessage = async () => {
+    if (!input.trim()) return;
+    const newMsg = { role: 'user', text: input };
+    setMessages([...messages, newMsg]);
+    setInput('');
     setLoading(true);
 
     try {
       const res = await fetch("https://arabic-ai-app-production.up.railway.app/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: query, data: allData, lang: language })
+        body: JSON.stringify({
+          message: input,
+          data: allData,
+          lang: language,
+        })
       });
-      const data = await res.json();
-      setResponse(data.reply || '❌ No response');
-      setHistory(prev => [...prev, { q: query, a: data.reply }]);
-      setQuery('');
+      const json = await res.json();
+      const reply = json.reply || (language === 'ar' ? "❌ لم يتم العثور على رد." : "❌ No reply received.");
+      setMessages(prev => [...prev, { role: 'ai', text: reply }]);
     } catch (e) {
-      setResponse('❌ Error connecting to AI');
+      setMessages(prev => [...prev, { role: 'ai', text: language === 'ar' ? "❌ فشل الاتصال بالخادم." : "❌ Server error." }]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') askAI();
-  };
+  const handleKey = (e) => e.key === 'Enter' && sendMessage();
 
   return (
     <div className="chat-box">
       <h3>{language === 'ar' ? 'اسأل عن بياناتك' : 'Ask about your data'}</h3>
-
-      {history.map((item, idx) => (
-        <div key={idx} className="chat-entry">
-          <div className="user-msg">🧑‍💼 {item.q}</div>
-          <div className="ai-msg">🤖 {item.a}</div>
-        </div>
-      ))}
-
+      <div className="messages">
+        {messages.map((m, i) => (
+          <div key={i} className={`msg ${m.role}`}>{m.text}</div>
+        ))}
+        {loading && <div className="msg ai">
+          <span className="dot"></span>
+          <span className="dot"></span>
+          <span className="dot"></span>
+        </div>}
+        <div ref={bottomRef} />
+      </div>
       <div className="chat-input">
         <input
-          type="text"
-          placeholder={language === 'ar' ? 'اكتب سؤالك هنا...' : 'Type your question here...'}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyPress}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder={language === 'ar' ? '...اكتب سؤالك هنا' : '...Type your question here'}
         />
-        <button onClick={askAI} disabled={loading}>
-          {language === 'ar' ? 'إرسال' : 'Send'}
-        </button>
-        <button onClick={() => setQuery('')} className="clear-btn">❌</button>
+        <button className="send" onClick={sendMessage}>📤</button>
+        <button className="clear" onClick={() => setMessages([])}>❌</button>
       </div>
     </div>
   );
