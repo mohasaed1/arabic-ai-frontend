@@ -1,4 +1,4 @@
-// src/components/SmartDataDashboard.jsx 
+// src/components/SmartDataDashboard.jsx with fallback logic and debug preview
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
@@ -19,6 +19,7 @@ const SmartDataDashboard = () => {
   const [rawFiles, setRawFiles] = useState([]);
   const [showJoinEditor, setShowJoinEditor] = useState(false);
   const [loadingAI, setLoadingAI] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -26,14 +27,12 @@ const SmartDataDashboard = () => {
     setRawFiles([]);
     setShowJoinEditor(false);
 
-    const allParsedData = [];
     const parsedFiles = [];
 
-    files.forEach((file, idx) => {
+    files.forEach((file) => {
       const fileType = file.name.split('.').pop().toLowerCase();
 
       const processParsed = (parsed) => {
-        allParsedData.push(...parsed);
         parsedFiles.push({ name: file.name, data: parsed });
         if (parsedFiles.length === files.length) setRawFiles(parsedFiles);
       };
@@ -72,7 +71,6 @@ const SmartDataDashboard = () => {
   };
 
   const finalizeJoin = async (confirmedMatches) => {
-    const fileMap = Object.fromEntries(rawFiles.map(f => [f.name, f.data]));
     const filesToJoin = rawFiles.map(f => f.data);
     const response = await fetch("https://arabic-ai-app-production.up.railway.app/join-files", {
       method: "POST",
@@ -82,16 +80,18 @@ const SmartDataDashboard = () => {
     const result = await response.json();
     const merged = result.data || [];
     setAllData(merged);
+
     const headers = [{
       fileName: 'Merged Data',
-      headers: Object.keys(merged[0] || {})
+      headers: Object.keys(merged[0] || {}).filter(k => k && k !== 'EMPTY__')
     }];
     setFileHeaders(headers);
     setSelectedColumns(headers.map(h => h.headers.slice(0, 1)));
     setInsights(generateInsights(merged));
 
-    const textCol = headers[0].headers.find(h => isNaN(parseFloat(merged[0][h])));
-    const numCol = headers[0].headers.find(h => !isNaN(parseFloat(merged[0][h])));
+    const validCols = headers[0].headers;
+    const textCol = validCols.find(h => typeof merged[0][h] === 'string' && merged[0][h].trim());
+    const numCol = validCols.find(h => !isNaN(parseFloat(merged[0][h])));
     if (textCol && numCol) {
       setSuggestedChart({ x: textCol, y: numCol, type: 'bar' });
     }
@@ -113,9 +113,15 @@ const SmartDataDashboard = () => {
           body: JSON.stringify({ message: "Please provide a full summary with key KPIs and smart insights", data: allData, lang: "en" })
         })
       ]);
+
       const arData = await arRes.json();
       const enData = await enRes.json();
-      setInsights({ ar: arData.reply || '', en: enData.reply || '' });
+
+      const fallback = "يمكنك طرح أي سؤال حول المبيعات أو الأداء، وسنجيب بالتحليل.";
+      setInsights({
+        ar: arData.reply?.trim() || fallback,
+        en: enData.reply?.trim() || "You can ask any question about sales or performance."
+      });
     } catch (e) {
       alert("❌ Full AI Analysis failed.");
     } finally {
@@ -130,7 +136,8 @@ const SmartDataDashboard = () => {
       chooseColumns: 'اختر الأعمدة:',
       summary: '🧠 ملخص ذكي',
       suggestion: '💡 اقتراح رسم بياني',
-      runAI: '🔍 تنفيذ تحليل AI الكامل'
+      runAI: '🔍 تنفيذ تحليل AI الكامل',
+      debug: '🪵 عرض البيانات'
     },
     en: {
       title: '📊 Smart Data Analytics Dashboard',
@@ -138,7 +145,8 @@ const SmartDataDashboard = () => {
       chooseColumns: 'Choose columns:',
       summary: '🧠 Smart Summary',
       suggestion: '💡 Suggested Chart',
-      runAI: '🔍 Run Full AI Analysis'
+      runAI: '🔍 Run Full AI Analysis',
+      debug: '🪵 Show Debug Table'
     }
   };
 
@@ -187,6 +195,7 @@ const SmartDataDashboard = () => {
           <button className="btn my-3 bg-yellow-400" onClick={runFullAI} disabled={loadingAI}>
             {loadingAI ? '⏳ Running Analysis...' : t[language].runAI}
           </button>
+          <button className="btn my-2" onClick={() => setShowDebug(!showDebug)}>{t[language].debug}</button>
 
           {suggestedChart && (
             <div className="suggestion-box">
@@ -202,26 +211,20 @@ const SmartDataDashboard = () => {
             </div>
           )}
 
-          <SmartChart
-            allData={allData}
-            selectedColumns={selectedColumns}
-            chartType={chartType}
-          />
+          {showDebug && (
+            <div className="debug-table">
+              <pre>{JSON.stringify(allData.slice(0, 5), null, 2)}</pre>
+            </div>
+          )}
+
+          <SmartChart allData={allData} selectedColumns={selectedColumns} chartType={chartType} />
 
           <div className="insight-box">
             <h4>{t[language].summary}</h4>
-            {insights[language] ? (
-              insights[language].split('\n').map((line, i) => <p key={i}>{line}</p>)
-            ) : (
-              <p>🚫 لا يوجد ملخص متاح</p>
-            )}
+            {insights[language] ? insights[language].split('\n').map((line, i) => <p key={i}>{line}</p>) : <p>🚫 لا يوجد ملخص متاح</p>}
           </div>
 
-          <SmartChat
-            fileData={allData}
-            setSelectedColumns={setSelectedColumns}
-            setChartType={setChartType}
-          />
+          <SmartChat fileData={allData} setSelectedColumns={setSelectedColumns} setChartType={setChartType} />
         </>
       )}
     </div>
