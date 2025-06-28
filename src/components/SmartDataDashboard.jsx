@@ -1,4 +1,4 @@
-// SmartDataDashboard.jsx (with better NLP and auto AI logic)
+// SmartDataDashboard.jsx (with tagging + export)
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
@@ -7,6 +7,7 @@ import SmartChat from './SmartChat';
 import SmartChart from './SmartChart';
 import JoinEditor from './JoinEditor';
 import { generateInsights } from '../utils/generateInsights';
+import html2pdf from 'html2pdf.js';
 
 const SmartDataDashboard = () => {
   const [allData, setAllData] = useState([]);
@@ -101,8 +102,8 @@ const SmartDataDashboard = () => {
     if (!allData.length) return;
     try {
       setLoadingAI(true);
-      const promptAr = `📊 الرجاء تحليل هذه البيانات واستخراج أهم المؤشرات الذكية، أبرز الاتجاهات، القيم غير العادية، وأهم المخرجات الممكنة.`;
-      const promptEn = `📊 Analyze this dataset and return key KPIs, smart patterns, anomalies, and insights.`;
+      const promptAr = `📊 الرجاء تحليل هذه البيانات واستخراج أهم المؤشرات الذكية، أبرز الاتجاهات، القيم غير العادية، وأهم المخرجات الممكنة مع وضع علامة على كل نتيجة بوضوح (✅ جيد، 🔺 شاذة، 🔻 ضعيفة).`;
+      const promptEn = `📊 Analyze this dataset and return key KPIs, patterns, anomalies, and business insights. Tag each line clearly with (✅ Good, 🔺 Outlier, 🔻 Drop).`;
 
       const [arRes, enRes] = await Promise.all([
         fetch("https://arabic-ai-app-production.up.railway.app/chat", {
@@ -131,6 +132,12 @@ const SmartDataDashboard = () => {
     }
   };
 
+  const downloadReport = () => {
+    const content = `\nArabic Summary:\n${insights.ar}\n\nEnglish Summary:\n${insights.en}`;
+    const opt = { margin: 0.5, filename: 'AI_Analysis_Report.pdf', html2canvas: {}, jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' } };
+    html2pdf().set(opt).from(`<pre>${content}</pre>`).save();
+  };
+
   const t = {
     ar: {
       title: '📊 لوحة تحليل البيانات الذكية',
@@ -139,6 +146,7 @@ const SmartDataDashboard = () => {
       summary: '🧠 ملخص ذكي',
       suggestion: '💡 اقتراح رسم بياني',
       runAI: '🔍 تنفيذ تحليل AI الكامل',
+      download: '📥 تحميل التقرير',
       debug: '🪵 عرض البيانات'
     },
     en: {
@@ -148,6 +156,7 @@ const SmartDataDashboard = () => {
       summary: '🧠 Smart Summary',
       suggestion: '💡 Suggested Chart',
       runAI: '🔍 Run Full AI Analysis',
+      download: '📥 Download Report',
       debug: '🪵 Show Debug Table'
     }
   };
@@ -194,10 +203,13 @@ const SmartDataDashboard = () => {
             ))}
           </div>
 
-          <button className="btn my-3 bg-yellow-400" onClick={runFullAI} disabled={loadingAI}>
-            {loadingAI ? '⏳ Running Analysis...' : t[language].runAI}
-          </button>
-          <button className="btn my-2" onClick={() => setShowDebug(!showDebug)}>{t[language].debug}</button>
+          <div className="my-2">
+            <button className="btn bg-yellow-400" onClick={runFullAI} disabled={loadingAI}>
+              {loadingAI ? '⏳ Running Analysis...' : t[language].runAI}
+            </button>
+            <button className="btn mx-2" onClick={downloadReport}>{t[language].download}</button>
+            <button className="btn" onClick={() => setShowDebug(!showDebug)}>{t[language].debug}</button>
+          </div>
 
           {suggestedChart && (
             <div className="suggestion-box">
