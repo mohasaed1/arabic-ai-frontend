@@ -1,4 +1,4 @@
-// src/components/SmartDataDashboard.jsx
+// src/components/SmartDataDashboard.jsx 
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
@@ -15,20 +15,23 @@ const SmartDataDashboard = () => {
   const [insights, setInsights] = useState({ ar: '', en: '' });
   const [language, setLanguage] = useState('ar');
   const [suggestedChart, setSuggestedChart] = useState(null);
+  const [rawFiles, setRawFiles] = useState([]);
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
-    const allParsedData = [];
     setFileHeaders([]);
+    setRawFiles([]);
+
+    const allParsedData = [];
+    const parsedFiles = [];
 
     files.forEach((file, idx) => {
       const fileType = file.name.split('.').pop().toLowerCase();
-      const tagSource = (data) => data.map((row) => ({ ...row, __source: file.name }));
 
       const processParsed = (parsed) => {
-        const tagged = tagSource(parsed);
-        allParsedData.push(...tagged);
-        if (idx === files.length - 1) finalizeUpload(allParsedData, files);
+        allParsedData.push(...parsed);
+        parsedFiles.push(parsed);
+        if (parsedFiles.length === files.length) finalizeUpload(parsedFiles, files);
       };
 
       if (fileType === 'csv') {
@@ -64,27 +67,36 @@ const SmartDataDashboard = () => {
     });
   };
 
-  const finalizeUpload = (combinedData, files) => {
-    setAllData(combinedData);
-    const headers = files.map(file => {
-      const data = combinedData.filter(row => row.__source === file.name);
-      return {
-        fileName: file.name,
-        headers: Object.keys(data[0] || {}).filter(k => k !== '__source')
-      };
-    });
-    setFileHeaders(headers);
-    setSelectedColumns(headers.map(h => h.headers.slice(0, 1)));
-    const newInsights = generateInsights(combinedData);
-    setInsights(newInsights);
+  const finalizeUpload = async (parsedFiles, files) => {
+    try {
+      const response = await fetch("https://arabic-ai-app-production.up.railway.app/join-files", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ files: parsedFiles })
+      });
+      const result = await response.json();
+      const merged = result.data || [];
+      const joinNote = result.join_summary?.join(" | ") || '';
 
-    // Suggested chart logic
-    const mostFrequent = headers[0]?.headers[0];
-    const numericCandidate = headers[0]?.headers.find(h =>
-      combinedData.some(r => !isNaN(parseFloat(r[h])))
-    );
-    if (mostFrequent && numericCandidate) {
-      setSuggestedChart({ x: mostFrequent, y: numericCandidate, type: 'bar' });
+      setAllData(merged);
+      const headers = [{
+        fileName: 'Merged Data',
+        headers: Object.keys(merged[0] || {})
+      }];
+      setFileHeaders(headers);
+      setSelectedColumns(headers.map(h => h.headers.slice(0, 1)));
+      setInsights(generateInsights(merged));
+
+      // Suggested chart logic
+      const textCol = headers[0].headers.find(h => isNaN(parseFloat(merged[0][h])));
+      const numCol = headers[0].headers.find(h => !isNaN(parseFloat(merged[0][h])));
+      if (textCol && numCol) {
+        setSuggestedChart({ x: textCol, y: numCol, type: 'bar' });
+      }
+
+      alert("✅ " + joinNote);
+    } catch (err) {
+      alert("❌ Failed to merge files: " + err.message);
     }
   };
 
@@ -92,14 +104,14 @@ const SmartDataDashboard = () => {
     ar: {
       title: '📊 لوحة تحليل البيانات الذكية',
       upload: 'اختر ملفات متعددة (CSV، Excel، صور)',
-      chooseColumns: 'اختر الأعمدة لكل ملف:',
+      chooseColumns: 'اختر الأعمدة:',
       summary: '🧠 ملخص ذكي',
       suggestion: '💡 اقتراح رسم بياني'
     },
     en: {
       title: '📊 Smart Data Analytics Dashboard',
       upload: 'Select multiple files (CSV, Excel, Images)',
-      chooseColumns: 'Choose columns per file:',
+      chooseColumns: 'Choose columns:',
       summary: '🧠 Smart Summary',
       suggestion: '💡 Suggested Chart'
     }
