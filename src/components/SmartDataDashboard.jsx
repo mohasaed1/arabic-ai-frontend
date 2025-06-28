@@ -1,4 +1,4 @@
-// SmartDataDashboard.jsx (with tagging + export)
+// SmartDataDashboard.jsx (Full AI-enhanced version)
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
@@ -27,12 +27,10 @@ const SmartDataDashboard = () => {
     setFileHeaders([]);
     setRawFiles([]);
     setShowJoinEditor(false);
-
     const parsedFiles = [];
 
     files.forEach((file) => {
       const fileType = file.name.split('.').pop().toLowerCase();
-
       const processParsed = (parsed) => {
         parsedFiles.push({ name: file.name, data: parsed });
         if (parsedFiles.length === files.length) setRawFiles(parsedFiles);
@@ -140,24 +138,10 @@ const SmartDataDashboard = () => {
 
   const t = {
     ar: {
-      title: '📊 لوحة تحليل البيانات الذكية',
-      upload: 'اختر ملفات متعددة (CSV، Excel، صور)',
-      chooseColumns: 'اختر الأعمدة:',
-      summary: '🧠 ملخص ذكي',
-      suggestion: '💡 اقتراح رسم بياني',
-      runAI: '🔍 تنفيذ تحليل AI الكامل',
-      download: '📥 تحميل التقرير',
-      debug: '🪵 عرض البيانات'
+      title: '📊 لوحة تحليل البيانات الذكية', upload: 'اختر ملفات متعددة (CSV، Excel، صور)', chooseColumns: 'اختر الأعمدة:', summary: '🧠 ملخص ذكي', suggestion: '💡 اقتراح رسم بياني', runAI: '🔍 تنفيذ تحليل AI الكامل', download: '📥 تحميل التقرير', debug: '🪵 عرض البيانات'
     },
     en: {
-      title: '📊 Smart Data Analytics Dashboard',
-      upload: 'Select multiple files (CSV, Excel, Images)',
-      chooseColumns: 'Choose columns:',
-      summary: '🧠 Smart Summary',
-      suggestion: '💡 Suggested Chart',
-      runAI: '🔍 Run Full AI Analysis',
-      download: '📥 Download Report',
-      debug: '🪵 Show Debug Table'
+      title: '📊 Smart Data Analytics Dashboard', upload: 'Select multiple files (CSV, Excel, Images)', chooseColumns: 'Choose columns:', summary: '🧠 Smart Summary', suggestion: '💡 Suggested Chart', runAI: '🔍 Run Full AI Analysis', download: '📥 Download Report', debug: '🪵 Show Debug Table'
     }
   };
 
