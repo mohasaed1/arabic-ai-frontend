@@ -1,4 +1,4 @@
-// SmartChat.jsx (with hook to chart update based on group by and multi-column logic)
+// SmartChat.jsx 
 import React, { useState, useEffect, useRef } from "react";
 import { LoaderCircle, Trash2, Mic } from "lucide-react";
 import Markdown from "react-markdown";
@@ -39,14 +39,19 @@ export default function SmartChat({ fileData, setSelectedColumns, setChartType, 
     setLoading(true);
     setTypingContent("");
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
+
     try {
       const res = await fetch("https://arabic-ai-app-production.up.railway.app/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({ message: input, data: fileData, lang: isArabic(input) ? 'ar' : 'en' }),
       });
+      clearTimeout(timeoutId);
       const result = await res.json();
-      const reply = result?.reply || "❌ لا توجد إجابة.";
+      const reply = result?.reply && result.reply.trim().length > 0 ? result.reply : "❌ لا توجد إجابة.";
 
       let i = 0;
       const typeChar = () => {
@@ -62,7 +67,8 @@ export default function SmartChat({ fileData, setSelectedColumns, setChartType, 
       };
       typeChar();
     } catch (err) {
-      setMessages([...newMessages, { role: "assistant", content: "❌ فشل الاتصال بالخادم." }]);
+      clearTimeout(timeoutId);
+      setMessages([...newMessages, { role: "assistant", content: "❌ فشل الاتصال بالخادم أو انتهاء المهلة." }]);
       setTypingContent("");
     } finally {
       setLoading(false);
