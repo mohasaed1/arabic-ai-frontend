@@ -251,3 +251,11 @@ button:hover {
   66% { content: '..'; }
   100% { content: '...'; }
 }
+.search-input {
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 1rem;
+}
