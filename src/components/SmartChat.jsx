@@ -1,4 +1,4 @@
-// SmartChat.jsx (Restored with animated typing + AI integration)
+// SmartChat.jsx 
 import React, { useState } from 'react';
 
 const SmartChat = ({ fileData, setSelectedColumns, setChartType }) => {
@@ -9,54 +9,58 @@ const SmartChat = ({ fileData, setSelectedColumns, setChartType }) => {
 
   const handleSend = async () => {
     if (!input.trim()) return;
-    const userMsg = { sender: 'user', text: input };
-    setMessages(prev => [...prev, userMsg]);
+    const newMsg = { sender: 'user', text: input };
+    setMessages((prev) => [...prev, newMsg]);
     setLoading(true);
     setInput('');
 
     try {
-      const res = await fetch("https://arabic-ai-app-production.up.railway.app/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: input, data: fileData, lang: language })
+      const res = await fetch('https://arabic-ai-app-production.up.railway.app/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: newMsg.text, data: fileData, lang: language }),
       });
-      const data = await res.json();
-      const reply = data.reply || '❌ No response';
-      setMessages(prev => [...prev, { sender: 'bot', text: reply }]);
-    } catch {
-      setMessages(prev => [...prev, { sender: 'bot', text: '❌ فشل في الاتصال بـ API الذكاء الاصطناعي.' }]);
+      const json = await res.json();
+      const reply = json.reply || '❌ No response';
+      setMessages((prev) => [...prev, { sender: 'bot', text: reply }]);
+    } catch (err) {
+      setMessages((prev) => [...prev, { sender: 'bot', text: '❌ Failed to reach AI server.' }]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    <div className="chat-box">
-      <div className="chat-header">
-        <span>🤖 SmartChat AI</span>
-        <select onChange={(e) => setLanguage(e.target.value)} value={language}>
+    <div className="smartchat-box">
+      <div className="header">
+        <span>🧠 SmartChat</span>
+        <select value={language} onChange={(e) => setLanguage(e.target.value)}>
           <option value="ar">🇸🇦 عربي</option>
           <option value="en">🇺🇸 English</option>
         </select>
       </div>
-      <div className="chat-messages">
-        {messages.map((msg, i) => (
-          <div key={i} className={`chat-msg ${msg.sender}`}>{msg.text}</div>
+
+      <div className="messages">
+        {messages.map((m, i) => (
+          <div key={i} className={`msg ${m.sender}`}>{m.text}</div>
         ))}
-        {loading && <div className="chat-msg bot loading">...
-          <span className="dot">.</span>
-          <span className="dot">.</span>
-          <span className="dot">.</span>
-        </div>}
+        {loading && (
+          <div className="msg bot">
+            <span className="dots">
+              <span>.</span><span>.</span><span>.</span>
+            </span>
+          </div>
+        )}
       </div>
-      <div className="chat-input">
+
+      <div className="input-row">
         <input
-          type="text"
           value={input}
-          placeholder={language === 'ar' ? '💬 اكتب سؤالك هنا...' : '💬 Type your question...'}
+          placeholder={language === 'ar' ? '📝 اكتب سؤالك' : '📝 Type your question'}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
         />
-        <button onClick={handleSend}>📤</button>
+        <button onClick={handleSend}>📨</button>
       </div>
     </div>
   );
