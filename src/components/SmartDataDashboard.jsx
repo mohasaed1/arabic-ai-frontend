@@ -1,4 +1,4 @@
-// SmartDataDashboard.jsx (with AI auto-run + search filtering)
+// SmartDataDashboard.jsx (full version with AI auto-run, filtering, chart, summary, chat)
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
@@ -28,7 +28,6 @@ const SmartDataDashboard = () => {
     setFileHeaders([]);
     setRawFiles([]);
     setShowJoinEditor(false);
-
     const parsedFiles = [];
 
     files.forEach((file) => {
@@ -38,7 +37,6 @@ const SmartDataDashboard = () => {
         parsedFiles.push({ name: file.name, data: parsed });
         if (parsedFiles.length === files.length) {
           setRawFiles(parsedFiles);
-
           if (parsedFiles.length === 1) {
             const data = parsedFiles[0].data;
             setAllData(data);
@@ -49,24 +47,17 @@ const SmartDataDashboard = () => {
             setFileHeaders(headers);
             setSelectedColumns(headers.map(h => h.headers.slice(0, 1)));
             setInsights(generateInsights(data));
-
             const validCols = headers[0].headers;
             const textCol = validCols.find(h => typeof data[0][h] === 'string' && data[0][h].trim());
             const numCol = validCols.find(h => !isNaN(parseFloat(data[0][h])));
-            if (textCol && numCol) {
-              setSuggestedChart({ x: textCol, y: numCol, type: 'bar' });
-            }
+            if (textCol && numCol) setSuggestedChart({ x: textCol, y: numCol, type: 'bar' });
             runFullAI();
           }
         }
       };
 
       if (fileType === 'csv') {
-        Papa.parse(file, {
-          header: true,
-          skipEmptyLines: true,
-          complete: (results) => processParsed(results.data),
-        });
+        Papa.parse(file, { header: true, skipEmptyLines: true, complete: r => processParsed(r.data) });
       } else if (fileType === 'xlsx') {
         const reader = new FileReader();
         reader.onload = (evt) => {
@@ -88,8 +79,7 @@ const SmartDataDashboard = () => {
               return row;
             });
             processParsed(parsed);
-          })
-          .catch(err => alert("❌ OCR failed: " + err));
+          });
       }
     });
   };
@@ -100,7 +90,6 @@ const SmartDataDashboard = () => {
       setLoadingAI(true);
       const promptAr = `📊 الرجاء تحليل هذه البيانات واستخراج أهم المؤشرات الذكية، أبرز الاتجاهات، القيم غير العادية، وأهم المخرجات الممكنة مع وضع علامة على كل نتيجة بوضوح (✅ جيد، 🔺 شاذة، 🔻 ضعيفة).`;
       const promptEn = `📊 Analyze this dataset and return key KPIs, patterns, anomalies, and business insights. Tag each line clearly with (✅ Good, 🔺 Outlier, 🔻 Drop).`;
-
       const [arRes, enRes] = await Promise.all([
         fetch("https://arabic-ai-app-production.up.railway.app/chat", {
           method: "POST",
@@ -113,16 +102,12 @@ const SmartDataDashboard = () => {
           body: JSON.stringify({ message: promptEn, data: allData, lang: "en" })
         })
       ]);
-
       const arData = await arRes.json();
       const enData = await enRes.json();
-
       setInsights({
-        ar: arData.reply?.trim() || '❌ لم يتم التوصل إلى ملخص ذكي. يرجى المحاولة مرة أخرى.',
-        en: enData.reply?.trim() || '❌ No AI summary returned. Try again with a simpler dataset.'
+        ar: arData.reply?.trim() || '❌ لم يتم التوصل إلى ملخص ذكي.',
+        en: enData.reply?.trim() || '❌ No AI summary returned.'
       });
-    } catch (e) {
-      alert("❌ Full AI Analysis failed.");
     } finally {
       setLoadingAI(false);
     }
@@ -153,6 +138,15 @@ const SmartDataDashboard = () => {
       )}
 
       <SmartChart allData={filteredData} selectedColumns={selectedColumns} chartType={chartType} />
+
+      {insights[language] && (
+        <div className="insight-box">
+          <h4>🧠 {language === 'ar' ? 'ملخص ذكي' : 'Smart Summary'}</h4>
+          {insights[language].split('\n').map((line, i) => <p key={i}>{line}</p>)}
+        </div>
+      )}
+
+      <SmartChat fileData={filteredData} setSelectedColumns={setSelectedColumns} setChartType={setChartType} />
     </div>
   );
 };
