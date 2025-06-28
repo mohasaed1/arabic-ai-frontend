@@ -1,4 +1,4 @@
-// SmartDataDashboard.jsx 
+// SmartDataDashboard.jsx (finalized with single-file support + responsive chart)
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
@@ -35,7 +35,29 @@ const SmartDataDashboard = () => {
 
       const processParsed = (parsed) => {
         parsedFiles.push({ name: file.name, data: parsed });
-        if (parsedFiles.length === files.length) setRawFiles(parsedFiles);
+        if (parsedFiles.length === files.length) {
+          setRawFiles(parsedFiles);
+
+          // Auto process if only one file
+          if (parsedFiles.length === 1) {
+            const data = parsedFiles[0].data;
+            setAllData(data);
+            const headers = [{
+              fileName: parsedFiles[0].name,
+              headers: Object.keys(data[0] || {}).filter(k => k && !k.toLowerCase().includes('empty'))
+            }];
+            setFileHeaders(headers);
+            setSelectedColumns(headers.map(h => h.headers.slice(0, 1)));
+            setInsights(generateInsights(data));
+
+            const validCols = headers[0].headers;
+            const textCol = validCols.find(h => typeof data[0][h] === 'string' && data[0][h].trim());
+            const numCol = validCols.find(h => !isNaN(parseFloat(data[0][h])));
+            if (textCol && numCol) {
+              setSuggestedChart({ x: textCol, y: numCol, type: 'bar' });
+            }
+          }
+        }
       };
 
       if (fileType === 'csv') {
@@ -231,9 +253,7 @@ const SmartDataDashboard = () => {
             </div>
           )}
 
-          <div style={{ width: '100%', height: '500px' }}>
-            <SmartChart allData={allData} selectedColumns={selectedColumns} chartType={chartType} />
-          </div>
+          <SmartChart allData={allData} selectedColumns={selectedColumns} chartType={chartType} />
 
           <div className="insight-box">
             <h4>{t[language].summary}</h4>
