@@ -1,4 +1,4 @@
-// src/components/SmartDataDashboard.jsx with fallback logic and debug preview
+// SmartDataDashboard.jsx (with better NLP and auto AI logic)
 import React, { useState } from 'react';
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
@@ -83,7 +83,7 @@ const SmartDataDashboard = () => {
 
     const headers = [{
       fileName: 'Merged Data',
-      headers: Object.keys(merged[0] || {}).filter(k => k && k !== 'EMPTY__')
+      headers: Object.keys(merged[0] || {}).filter(k => k && !k.toLowerCase().includes('empty'))
     }];
     setFileHeaders(headers);
     setSelectedColumns(headers.map(h => h.headers.slice(0, 1)));
@@ -101,26 +101,28 @@ const SmartDataDashboard = () => {
     if (!allData.length) return;
     try {
       setLoadingAI(true);
+      const promptAr = `📊 الرجاء تحليل هذه البيانات واستخراج أهم المؤشرات الذكية، أبرز الاتجاهات، القيم غير العادية، وأهم المخرجات الممكنة.`;
+      const promptEn = `📊 Analyze this dataset and return key KPIs, smart patterns, anomalies, and insights.`;
+
       const [arRes, enRes] = await Promise.all([
         fetch("https://arabic-ai-app-production.up.railway.app/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: "الرجاء تقديم ملخص كامل مع مؤشرات الأداء المهمة والتحليلات الذكية", data: allData, lang: "ar" })
+          body: JSON.stringify({ message: promptAr, data: allData, lang: "ar" })
         }),
         fetch("https://arabic-ai-app-production.up.railway.app/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: "Please provide a full summary with key KPIs and smart insights", data: allData, lang: "en" })
+          body: JSON.stringify({ message: promptEn, data: allData, lang: "en" })
         })
       ]);
 
       const arData = await arRes.json();
       const enData = await enRes.json();
 
-      const fallback = "يمكنك طرح أي سؤال حول المبيعات أو الأداء، وسنجيب بالتحليل.";
       setInsights({
-        ar: arData.reply?.trim() || fallback,
-        en: enData.reply?.trim() || "You can ask any question about sales or performance."
+        ar: arData.reply?.trim() || '❌ لم يتم التوصل إلى ملخص ذكي. يرجى المحاولة مرة أخرى.',
+        en: enData.reply?.trim() || '❌ No AI summary returned. Try again with a simpler dataset.'
       });
     } catch (e) {
       alert("❌ Full AI Analysis failed.");
