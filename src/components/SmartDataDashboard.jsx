@@ -14,6 +14,7 @@ const SmartDataDashboard = () => {
   const [chartType, setChartType] = useState('auto');
   const [insights, setInsights] = useState({ ar: '', en: '' });
   const [language, setLanguage] = useState('ar');
+  const [suggestedChart, setSuggestedChart] = useState(null);
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -74,7 +75,17 @@ const SmartDataDashboard = () => {
     });
     setFileHeaders(headers);
     setSelectedColumns(headers.map(h => h.headers.slice(0, 1)));
-    setInsights(generateInsights(combinedData));
+    const newInsights = generateInsights(combinedData);
+    setInsights(newInsights);
+
+    // Suggested chart logic
+    const mostFrequent = headers[0]?.headers[0];
+    const numericCandidate = headers[0]?.headers.find(h =>
+      combinedData.some(r => !isNaN(parseFloat(r[h])))
+    );
+    if (mostFrequent && numericCandidate) {
+      setSuggestedChart({ x: mostFrequent, y: numericCandidate, type: 'bar' });
+    }
   };
 
   const t = {
@@ -82,13 +93,15 @@ const SmartDataDashboard = () => {
       title: '📊 لوحة تحليل البيانات الذكية',
       upload: 'اختر ملفات متعددة (CSV، Excel، صور)',
       chooseColumns: 'اختر الأعمدة لكل ملف:',
-      summary: '🧠 ملخص ذكي'
+      summary: '🧠 ملخص ذكي',
+      suggestion: '💡 اقتراح رسم بياني'
     },
     en: {
       title: '📊 Smart Data Analytics Dashboard',
       upload: 'Select multiple files (CSV, Excel, Images)',
       chooseColumns: 'Choose columns per file:',
-      summary: '🧠 Smart Summary'
+      summary: '🧠 Smart Summary',
+      suggestion: '💡 Suggested Chart'
     }
   };
 
@@ -127,6 +140,20 @@ const SmartDataDashboard = () => {
               </div>
             ))}
           </div>
+
+          {suggestedChart && (
+            <div className="suggestion-box">
+              <h4>{t[language].suggestion}</h4>
+              <button className="btn" onClick={() => {
+                setSelectedColumns([[suggestedChart.x, suggestedChart.y]]);
+                setChartType(suggestedChart.type);
+              }}>
+                {language === 'ar'
+                  ? `📈 رسم ${suggestedChart.type.toUpperCase()} بين ${suggestedChart.x} و ${suggestedChart.y}`
+                  : `📈 Draw ${suggestedChart.type.toUpperCase()} chart of ${suggestedChart.x} vs ${suggestedChart.y}`}
+              </button>
+            </div>
+          )}
 
           <SmartChart
             allData={allData}
