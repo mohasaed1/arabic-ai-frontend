@@ -135,7 +135,7 @@ const SmartDataDashboard = () => {
   return (
     <div className="dashboard-card" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="lang-toggle">
-        <button onClick={() => setLanguage('ar')}>🇸🇦 عربي</button>
+        <button onClick={() => setLanguage('ar')}>🇵🇸 عربي</button>
         <button onClick={() => setLanguage('en')}>🇺🇸 English</button>
       </div>
 
