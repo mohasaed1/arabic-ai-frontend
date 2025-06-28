@@ -18,6 +18,7 @@ const SmartDataDashboard = () => {
   const [suggestedChart, setSuggestedChart] = useState(null);
   const [rawFiles, setRawFiles] = useState([]);
   const [showJoinEditor, setShowJoinEditor] = useState(false);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
@@ -96,20 +97,48 @@ const SmartDataDashboard = () => {
     }
   };
 
+  const runFullAI = async () => {
+    if (!allData.length) return;
+    try {
+      setLoadingAI(true);
+      const [arRes, enRes] = await Promise.all([
+        fetch("https://arabic-ai-app-production.up.railway.app/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: "الرجاء تقديم ملخص كامل مع مؤشرات الأداء المهمة والتحليلات الذكية", data: allData, lang: "ar" })
+        }),
+        fetch("https://arabic-ai-app-production.up.railway.app/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: "Please provide a full summary with key KPIs and smart insights", data: allData, lang: "en" })
+        })
+      ]);
+      const arData = await arRes.json();
+      const enData = await enRes.json();
+      setInsights({ ar: arData.reply || '', en: enData.reply || '' });
+    } catch (e) {
+      alert("❌ Full AI Analysis failed.");
+    } finally {
+      setLoadingAI(false);
+    }
+  };
+
   const t = {
     ar: {
       title: '📊 لوحة تحليل البيانات الذكية',
       upload: 'اختر ملفات متعددة (CSV، Excel، صور)',
       chooseColumns: 'اختر الأعمدة:',
       summary: '🧠 ملخص ذكي',
-      suggestion: '💡 اقتراح رسم بياني'
+      suggestion: '💡 اقتراح رسم بياني',
+      runAI: '🔍 تنفيذ تحليل AI الكامل'
     },
     en: {
       title: '📊 Smart Data Analytics Dashboard',
       upload: 'Select multiple files (CSV, Excel, Images)',
       chooseColumns: 'Choose columns:',
       summary: '🧠 Smart Summary',
-      suggestion: '💡 Suggested Chart'
+      suggestion: '💡 Suggested Chart',
+      runAI: '🔍 Run Full AI Analysis'
     }
   };
 
@@ -154,6 +183,10 @@ const SmartDataDashboard = () => {
               </div>
             ))}
           </div>
+
+          <button className="btn my-3 bg-yellow-400" onClick={runFullAI} disabled={loadingAI}>
+            {loadingAI ? '⏳ Running Analysis...' : t[language].runAI}
+          </button>
 
           {suggestedChart && (
             <div className="suggestion-box">
