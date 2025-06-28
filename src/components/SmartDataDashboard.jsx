@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import Tesseract from 'tesseract.js';
 import SmartChat from './SmartChat';
 import SmartChart from './SmartChart';
+import JoinEditor from './JoinEditor';
 import { generateInsights } from '../utils/generateInsights';
 
 const SmartDataDashboard = () => {
@@ -16,11 +17,13 @@ const SmartDataDashboard = () => {
   const [language, setLanguage] = useState('ar');
   const [suggestedChart, setSuggestedChart] = useState(null);
   const [rawFiles, setRawFiles] = useState([]);
+  const [showJoinEditor, setShowJoinEditor] = useState(false);
 
   const handleFileUpload = (e) => {
     const files = Array.from(e.target.files);
     setFileHeaders([]);
     setRawFiles([]);
+    setShowJoinEditor(false);
 
     const allParsedData = [];
     const parsedFiles = [];
@@ -30,8 +33,8 @@ const SmartDataDashboard = () => {
 
       const processParsed = (parsed) => {
         allParsedData.push(...parsed);
-        parsedFiles.push(parsed);
-        if (parsedFiles.length === files.length) finalizeUpload(parsedFiles, files);
+        parsedFiles.push({ name: file.name, data: parsed });
+        if (parsedFiles.length === files.length) setRawFiles(parsedFiles);
       };
 
       if (fileType === 'csv') {
@@ -67,36 +70,29 @@ const SmartDataDashboard = () => {
     });
   };
 
-  const finalizeUpload = async (parsedFiles, files) => {
-    try {
-      const response = await fetch("https://arabic-ai-app-production.up.railway.app/join-files", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ files: parsedFiles })
-      });
-      const result = await response.json();
-      const merged = result.data || [];
-      const joinNote = result.join_summary?.join(" | ") || '';
+  const finalizeJoin = async (confirmedMatches) => {
+    const fileMap = Object.fromEntries(rawFiles.map(f => [f.name, f.data]));
+    const filesToJoin = rawFiles.map(f => f.data);
+    const response = await fetch("https://arabic-ai-app-production.up.railway.app/join-files", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ files: filesToJoin, keys: confirmedMatches })
+    });
+    const result = await response.json();
+    const merged = result.data || [];
+    setAllData(merged);
+    const headers = [{
+      fileName: 'Merged Data',
+      headers: Object.keys(merged[0] || {})
+    }];
+    setFileHeaders(headers);
+    setSelectedColumns(headers.map(h => h.headers.slice(0, 1)));
+    setInsights(generateInsights(merged));
 
-      setAllData(merged);
-      const headers = [{
-        fileName: 'Merged Data',
-        headers: Object.keys(merged[0] || {})
-      }];
-      setFileHeaders(headers);
-      setSelectedColumns(headers.map(h => h.headers.slice(0, 1)));
-      setInsights(generateInsights(merged));
-
-      // Suggested chart logic
-      const textCol = headers[0].headers.find(h => isNaN(parseFloat(merged[0][h])));
-      const numCol = headers[0].headers.find(h => !isNaN(parseFloat(merged[0][h])));
-      if (textCol && numCol) {
-        setSuggestedChart({ x: textCol, y: numCol, type: 'bar' });
-      }
-
-      alert("✅ " + joinNote);
-    } catch (err) {
-      alert("❌ Failed to merge files: " + err.message);
+    const textCol = headers[0].headers.find(h => isNaN(parseFloat(merged[0][h])));
+    const numCol = headers[0].headers.find(h => !isNaN(parseFloat(merged[0][h])));
+    if (textCol && numCol) {
+      setSuggestedChart({ x: textCol, y: numCol, type: 'bar' });
     }
   };
 
@@ -126,6 +122,12 @@ const SmartDataDashboard = () => {
 
       <h2>{t[language].title}</h2>
       <input type="file" accept=".csv,.xlsx,.jpg,.jpeg,.png,.tiff" onChange={handleFileUpload} multiple />
+
+      {rawFiles.length > 1 && !allData.length && (
+        <div className="mt-6">
+          <JoinEditor files={rawFiles} onConfirm={(matches) => { setShowJoinEditor(false); finalizeJoin(matches); }} />
+        </div>
+      )}
 
       {fileHeaders.length > 0 && (
         <>
