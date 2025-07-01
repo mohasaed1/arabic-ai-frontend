@@ -1,7 +1,6 @@
 import React from 'react';
 import { Bar, Pie, Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Tooltip, Legend } from 'chart.js';
-import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 ChartJS.register(
