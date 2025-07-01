@@ -7,7 +7,7 @@ import SmartChat from './SmartChat';
 import SmartChart from './SmartChart';
 import JoinEditor from './JoinEditor';
 import { generateInsights } from '../utils/generateInsights';
-import html2pdf from 'html2pdf.js';
+
 
 const SmartDataDashboard = () => {
   const [allData, setAllData] = useState([]);
