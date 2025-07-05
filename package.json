@@ -1,22 +1,25 @@
 {
-  "name": "arabic-ai-frontend",
+  "name": "gateofai-frontend",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "serve": "vite preview"
+    "preview": "vite preview"
   },
   "dependencies": {
+    "axios": "^1.6.8",
+    "i18next": "^22.4.9",
+    "plotly.js": "^2.27.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-i18next": "^11.18.4",
-    "i18next": "^22.4.9",
-    "plotly.js": "^2.20.0",
-    "axios": "^1.4.0"
+    "react-i18next": "^11.18.4"
   },
   "devDependencies": {
-    "vite": "^5.0.0",
-    "tailwindcss": "^3.3.2"
+    "@vitejs/plugin-react": "^4.6.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.1",
+    "vite": "^5.2.0"
   }
 }
